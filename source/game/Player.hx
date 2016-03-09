@@ -28,12 +28,14 @@ class Player extends FlxSprite
 	override public function update(elapsed:Float):Void
 	{
 		movement();
+		firing(elapsed);
+		trace(elapsed);
 		super.update(elapsed);
 	}
 	
-	private function firing():Void {
+	private function firing(elapsed:Float):Void {
 		if (FlxG.keys.anyPressed([SPACE])) {
-			weapon.fire(FlxG.mouse.x, FlxG.mouse.y);
+			weapon.fire(elapsed, FlxG.mouse.x, FlxG.mouse.y);
 		}
 	}
 	

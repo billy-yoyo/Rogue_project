@@ -22,11 +22,12 @@ class Weapon
 	{
 		this.level = level;
 		this.source = source;
-		this.fireCooldown = 100;
+		this.fireCooldown = 0.1;
 		damageModel = new DamageModel(0.2);
 	}
 	
-	public function fire(targetX:Float, targetY:Float):Void {
+	public function fire(elapsed:Float, targetX:Float, targetY:Float):Void {
+		currentCooldown = currentCooldown - elapsed;
 		if (currentCooldown <= 0) {
 			currentCooldown = fireCooldown;
 			forceFire(targetX, targetY);
@@ -37,7 +38,7 @@ class Weapon
 	{
 		var target:FlxPoint = new FlxPoint(targetX, targetY);
 		var angle:Float = FlxAngle.angleBetweenPoint(source, target);
-		angle += FlxG.random.int( -100, 100) / 50.0;
+		angle += FlxG.random.int( -10, 10) / 50.0;
 		
 		var bullet = new Bullet(level, source.x, source.y, Math.cos(angle) * 300, Math.sin(angle) * 300, damageModel);
 		level.add(bullet);

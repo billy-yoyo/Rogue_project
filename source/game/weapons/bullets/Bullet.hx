@@ -23,7 +23,13 @@ class Bullet extends FlxSprite
 		super(X, Y);
 		makeGraphic(3, 3, FlxColor.BLUE);
 		this.speed = new FlxPoint(SpeedX, SpeedY);
+		this.level = level;
 		this.damage = damage;
+	}
+	
+	override public function update(elapsed:Float):Void 
+	{
+		movement(elapsed);
 	}
 	
 	private function movement(elapsed:Float):Void

@@ -65,7 +65,7 @@ ApplicationMain.init = function() {
 	if(total == 0) ApplicationMain.start();
 };
 ApplicationMain.main = function() {
-	ApplicationMain.config = { build : "117", company : "billy", file : "Rogueproject", fps : 60, name : "Rogue_project", orientation : "", packageName : "com.example.myapp", version : "0.0.1", windows : [{ antialiasing : 0, background : 0, borderless : false, depthBuffer : false, display : 0, fullscreen : false, hardware : false, height : 480, parameters : "{}", resizable : false, stencilBuffer : true, title : "Rogue_project", vsync : true, width : 640, x : null, y : null}]};
+	ApplicationMain.config = { build : "126", company : "billy", file : "Rogueproject", fps : 60, name : "Rogue_project", orientation : "", packageName : "com.example.myapp", version : "0.0.1", windows : [{ antialiasing : 0, background : 0, borderless : false, depthBuffer : false, display : 0, fullscreen : false, hardware : false, height : 480, parameters : "{}", resizable : false, stencilBuffer : true, title : "Rogue_project", vsync : true, width : 640, x : null, y : null}]};
 };
 ApplicationMain.start = function() {
 	var hasMain = false;
@@ -26934,10 +26934,12 @@ game_Player.__super__ = flixel_FlxSprite;
 game_Player.prototype = $extend(flixel_FlxSprite.prototype,{
 	update: function(elapsed) {
 		this.movement();
+		this.firing(elapsed);
+		haxe_Log.trace(elapsed,{ fileName : "Player.hx", lineNumber : 32, className : "game.Player", methodName : "update"});
 		flixel_FlxSprite.prototype.update.call(this,elapsed);
 	}
-	,firing: function() {
-		if(flixel_FlxG.keys.checkKeyArrayState([32],1)) this.weapon.fire(flixel_FlxG.mouse.x,flixel_FlxG.mouse.y);
+	,firing: function(elapsed) {
+		if(flixel_FlxG.keys.checkKeyArrayState([32],1)) this.weapon.fire(elapsed,flixel_FlxG.mouse.x,flixel_FlxG.mouse.y);
 	}
 	,movement: function() {
 		var _up = false;
@@ -26984,13 +26986,14 @@ var game_weapons_Weapon = function(level,source) {
 	this.currentCooldown = 0;
 	this.level = level;
 	this.source = source;
-	this.fireCooldown = 100;
+	this.fireCooldown = 0.1;
 	this.damageModel = new game_weapons_damage_DamageModel(0.2);
 };
 $hxClasses["game.weapons.Weapon"] = game_weapons_Weapon;
 game_weapons_Weapon.__name__ = ["game","weapons","Weapon"];
 game_weapons_Weapon.prototype = {
-	fire: function(targetX,targetY) {
+	fire: function(elapsed,targetX,targetY) {
+		this.currentCooldown = this.currentCooldown - elapsed;
 		if(this.currentCooldown <= 0) {
 			this.currentCooldown = this.fireCooldown;
 			this.forceFire(targetX,targetY);
@@ -26999,7 +27002,7 @@ game_weapons_Weapon.prototype = {
 	,forceFire: function(targetX,targetY) {
 		var target = new flixel_math_FlxPoint(targetX,targetY);
 		var angle = flixel_math_FlxAngle.angleBetweenPoint(this.source,target);
-		angle += flixel_FlxG.random["int"](-100,100) / 50.0;
+		angle += flixel_FlxG.random["int"](-10,10) / 50.0;
 		var bullet = new game_weapons_bullets_Bullet(this.level,this.source.x,this.source.y,Math.cos(angle) * 300,Math.sin(angle) * 300,this.damageModel);
 		this.level.add(bullet);
 	}
@@ -27010,13 +27013,17 @@ var game_weapons_bullets_Bullet = function(level,X,Y,SpeedX,SpeedY,damage) {
 	flixel_FlxSprite.call(this,X,Y);
 	this.makeGraphic(3,3,-16776961);
 	this.speed = new flixel_math_FlxPoint(SpeedX,SpeedY);
+	this.level = level;
 	this.damage = damage;
 };
 $hxClasses["game.weapons.bullets.Bullet"] = game_weapons_bullets_Bullet;
 game_weapons_bullets_Bullet.__name__ = ["game","weapons","bullets","Bullet"];
 game_weapons_bullets_Bullet.__super__ = flixel_FlxSprite;
 game_weapons_bullets_Bullet.prototype = $extend(flixel_FlxSprite.prototype,{
-	movement: function(elapsed) {
+	update: function(elapsed) {
+		this.movement(elapsed);
+	}
+	,movement: function(elapsed) {
 		var dx = this.speed.x * elapsed;
 		var dy = this.speed.y * elapsed;
 		var bulletTrace = new effects_BulletTrace(this.level,new flixel_math_FlxPoint(this.x,this.y),new flixel_math_FlxPoint(this.x + dx,this.y + dy),100);
