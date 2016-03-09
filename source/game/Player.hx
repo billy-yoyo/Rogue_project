@@ -29,7 +29,6 @@ class Player extends FlxSprite
 	{
 		movement();
 		firing(elapsed);
-		trace(elapsed);
 		super.update(elapsed);
 	}
 	

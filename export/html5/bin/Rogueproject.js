@@ -65,7 +65,7 @@ ApplicationMain.init = function() {
 	if(total == 0) ApplicationMain.start();
 };
 ApplicationMain.main = function() {
-	ApplicationMain.config = { build : "126", company : "billy", file : "Rogueproject", fps : 60, name : "Rogue_project", orientation : "", packageName : "com.example.myapp", version : "0.0.1", windows : [{ antialiasing : 0, background : 0, borderless : false, depthBuffer : false, display : 0, fullscreen : false, hardware : false, height : 480, parameters : "{}", resizable : false, stencilBuffer : true, title : "Rogue_project", vsync : true, width : 640, x : null, y : null}]};
+	ApplicationMain.config = { build : "144", company : "billy", file : "Rogueproject", fps : 60, name : "Rogue_project", orientation : "", packageName : "com.example.myapp", version : "0.0.1", windows : [{ antialiasing : 0, background : 0, borderless : false, depthBuffer : false, display : 0, fullscreen : false, hardware : false, height : 480, parameters : "{}", resizable : false, stencilBuffer : true, title : "Rogue_project", vsync : true, width : 640, x : null, y : null}]};
 };
 ApplicationMain.start = function() {
 	var hasMain = false;
@@ -4451,6 +4451,9 @@ flixel_FlxSprite.prototype = $extend(flixel_FlxObject.prototype,{
 });
 var effects_BulletTrace = function(source,start,end,life) {
 	flixel_FlxSprite.call(this,Math.min(start.x,end.x),Math.min(start.y,end.y));
+	this.makeGraphic(Std["int"](Math.max(start.x,end.x) - this.x) + 1,Std["int"](Math.max(start.y,end.y) - this.y) + 1,0,true);
+	flixel_util_FlxSpriteUtil.beginDraw(-16776961,null);
+	flixel_util_FlxSpriteUtil.drawLine(this,start.x - this.x,start.y - this.y,end.x - this.x,end.y - this.y);
 	this.source = source;
 	this.start = start;
 	this.end = end;
@@ -26935,7 +26938,6 @@ game_Player.prototype = $extend(flixel_FlxSprite.prototype,{
 	update: function(elapsed) {
 		this.movement();
 		this.firing(elapsed);
-		haxe_Log.trace(elapsed,{ fileName : "Player.hx", lineNumber : 32, className : "game.Player", methodName : "update"});
 		flixel_FlxSprite.prototype.update.call(this,elapsed);
 	}
 	,firing: function(elapsed) {
@@ -27002,7 +27004,7 @@ game_weapons_Weapon.prototype = {
 	,forceFire: function(targetX,targetY) {
 		var target = new flixel_math_FlxPoint(targetX,targetY);
 		var angle = flixel_math_FlxAngle.angleBetweenPoint(this.source,target);
-		angle += flixel_FlxG.random["int"](-10,10) / 50.0;
+		angle += flixel_FlxG.random["int"](-1,1) / 50.0;
 		var bullet = new game_weapons_bullets_Bullet(this.level,this.source.x,this.source.y,Math.cos(angle) * 300,Math.sin(angle) * 300,this.damageModel);
 		this.level.add(bullet);
 	}
@@ -27012,6 +27014,8 @@ var game_weapons_bullets_Bullet = function(level,X,Y,SpeedX,SpeedY,damage) {
 	this.hasCollided = false;
 	flixel_FlxSprite.call(this,X,Y);
 	this.makeGraphic(3,3,-16776961);
+	this.centre_x_offset = 1.5;
+	this.centre_y_offset = 1.5;
 	this.speed = new flixel_math_FlxPoint(SpeedX,SpeedY);
 	this.level = level;
 	this.damage = damage;
@@ -27026,10 +27030,10 @@ game_weapons_bullets_Bullet.prototype = $extend(flixel_FlxSprite.prototype,{
 	,movement: function(elapsed) {
 		var dx = this.speed.x * elapsed;
 		var dy = this.speed.y * elapsed;
-		var bulletTrace = new effects_BulletTrace(this.level,new flixel_math_FlxPoint(this.x,this.y),new flixel_math_FlxPoint(this.x + dx,this.y + dy),100);
-		this.level.add(bulletTrace);
-		this.set_x(bulletTrace.end.x);
-		this.set_y(bulletTrace.end.y);
+		var _g = this;
+		_g.set_x(_g.x + dx);
+		var _g1 = this;
+		_g1.set_y(_g1.y + dy);
 		flixel_FlxG.overlap(this,this.level.enemies,$bind(this,this.handleEnemyCollision),flixel_FlxObject.separate);
 		if(flixel_FlxG.overlap(this,this.level.tilemap,null,flixel_FlxObject.separate)) {
 			this.hasCollided = true;

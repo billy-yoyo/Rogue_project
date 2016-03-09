@@ -18,10 +18,14 @@ class Bullet extends FlxSprite
 	public var speed:FlxPoint;
 	public var hasCollided:Bool = false;
 	public var damage:DamageModel;
+	public var centre_x_offset:Float;
+	public var centre_y_offset:Float;
 	public function new(level:PlayState, X:Float, Y:Float, SpeedX:Float, SpeedY:Float, damage:DamageModel) 
 	{
 		super(X, Y);
 		makeGraphic(3, 3, FlxColor.BLUE);
+		centre_x_offset = 1.5;
+		centre_y_offset = 1.5;
 		this.speed = new FlxPoint(SpeedX, SpeedY);
 		this.level = level;
 		this.damage = damage;
@@ -37,11 +41,12 @@ class Bullet extends FlxSprite
 		var dx:Float = speed.x * elapsed;
 		var dy:Float = speed.y * elapsed;
 		
-		var bulletTrace = new BulletTrace(level, new FlxPoint(this.x, this.y), new FlxPoint(this.x + dx, this.y + dy), 100);
-		level.add(bulletTrace);
+		/*var bulletTrace = new BulletTrace(level, new FlxPoint(this.x + centre_x_offset, this.y + centre_y_offset), 
+												 new FlxPoint(this.x + dx + centre_x_offset, this.y + dy + centre_y_offset), 0.05);
+		level.add(bulletTrace);*/
 		
-		this.x = bulletTrace.end.x;
-		this.y = bulletTrace.end.y;
+		this.x += dx;
+		this.y += dy;
 		
 		FlxG.collide(this, level.enemies, handleEnemyCollision);
 		if (FlxG.collide(this, level.tilemap)) {

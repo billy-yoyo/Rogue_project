@@ -38,7 +38,7 @@ class Weapon
 	{
 		var target:FlxPoint = new FlxPoint(targetX, targetY);
 		var angle:Float = FlxAngle.angleBetweenPoint(source, target);
-		angle += FlxG.random.int( -10, 10) / 50.0;
+		angle += FlxG.random.int( -1, 1) / 50.0;
 		
 		var bullet = new Bullet(level, source.x, source.y, Math.cos(angle) * 300, Math.sin(angle) * 300, damageModel);
 		level.add(bullet);
