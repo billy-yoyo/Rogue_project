@@ -1,0 +1,65 @@
+
+Roguelike;
+
+Levels generated around a centre with branches, 
+organised in a circle pattern so centre - surrounding - open-branches - closed-branches
+centre is what you protect, surrounding is your area to work with, open-branches are the first areas of the branches that enemies spawn in, closed-branches are where the enemies actually spawn and are connected only
+to the open-branches. Loot gets better the further away from the centre you are.
+
+Setup traps: decide on traps/weapons you're bringing on mission, find/buy new traps, upgrade traps.
+Objective is to survive for a certain amount of time, in the centre there will be a set amount of people depending on the level.
+If an enemy reaches the centre people will die periodically (depending on the enemy) until you kill the enemy, so wandering further from the centre to get loot makes it more dangerous
+You can survive the level without any people making it, but you get money per person you save and people have a chance at giving you loot as well.
+
+Hub: you get to choose levels to go on, you gradually unlock them and they have an associated difficulty.
+Traps: placeable turrets/mines etc that help defend whilst you're away, should also be able to be upgraded using weapon-mods
+Weapons: you get a primary and secondary weapon that you use personally, both which can be upgraded.
+
+Ideas: time is a 'movement' counter, so everytime you take a step time goes forwards by a certain amount. Might not work so well since it's a shooter but an interesting idea.
+People you save give you money when you save them which can be used to buy weapons. 
+Weapons are very rare on levels (maybe the ones you do find are very strong though) but can be found commonly in shops,
+weapon mods are very rare in shops (simple rubbishy ones can be found) but can be found commonly in levels
+have to decide if you value getting money or getting better loot in the level in terms of how far you wander away from the centre.
+generally enemies either go for you if they're close enough or go for the centre, possible have an agro-cap so you can't just get all the enemies in a train (CoD-zombies style).
+
+Core features: 
+  * base building, you have x amount of time to quickly set up your defences before the enemies arrive
+  * exploring, going down the branches to find loot but being in the midst of where the enemies spawn from.
+  * modding weapons, like binding of isaac try to make weapon mods interact with each other and the weapon in cool ways to add variability
+
+These are the three which should be polished the most, some enemy variety would be nice obviously but I want it to feel like it gets more dangerous the further you get away from the centre
+and I want it to feel like the weapon mods really make a difference (if you find a rare one I want it to be exciting)
+
+I want to add some persistence from playthrough to playthrough (like in binding of isaac how you unlock characters) but I don't know what to do, maybe also just do characters?
+
+Steps:
+
+1.  first just work with a simple square level, make the player + make weapons (keep in mind modular weapon design when designing weapon models, things like bullet type, bullet speed, bullet fire-type)
+2.  implement the centre of the map, don't worry about aesthetics at this point just make it a box which if the enemies are in slowly ticks down
+3.  then work on enemies, should be simple AI like detailed earlier, agro on to player if close enough, otherwise go for centres or possible certain traps (like turrets), have agro-limits on traps and the player
+4.  once some base enemies are added work on adding traps, also keep in mind modularity (maybe split traps up in to catagories to make mods easier to make sense, like tripwire, turrets, cc)
+5.  now its time to try and actually generate levels, don't worry too much about aesthetic just make it 
+    centre - defence-circle - lower-branch (furthest you can build defenses) - upper-branch (make it expandable, these should have the potential to be large areas)
+6.  implement enemy spawning in to the level generators
+7.	implement vision (centre & defence-circle always visible, area near your player visible)
+7.  create some items now - enough mods/weapons do have a decent loot system (at least a functional one)
+8.  implement loot in to the level generation now
+9.  implement build-phase in to the levels (and generally implement the timer properly)
+10.  implement end-game for levels now (money reward for each person you save etc, can only escape once the timer has run out, must reach the centre to end the level)
+11. Simple branch-like system, completing levels unlocks a random amount of new levels attached to them. Should be relatively easy to create
+12. Attach shops to some of the levels, if the level is completed the shop can be accessed whenever.
+13. Implement shop-system, shops have a constant loot, will only gain loot on the rare event a person you save sells their weapon to them (chance for people you save to give loot, but a small one, you still have to but the loot)
+14. Game is basically done now. Make it look prettier. Add more weapon/trap/enemy/mod variety. Think of more ideas once you've got this far.
+
+Game layout:
+ STATES: Main menu state, Hub world state, Game state, Shop state
+ RESOURCES: Weapons, traps, mods, money (keep it simple)
+
+Interesting ideas:
+  * Having rare branch-areas that randomly spawn with unique enemies and loot would be cool, like one where it's really dark, one where it's really large etc.
+  * I want some sort of progression outside levels getting harder, I feel like boss-levels that are somewhat preset are a good idea which could be implemented later,
+	like only one branch with specific mob spawns and a boss-mob which has to be defeated before you can escape. 
+ 
+Keep in mind a way to save entire games - maybe have a button that lets you save specific levels as well if you found it an interesting level and wanted to retry it 
+(have two options - save copy, level-only copy, level-only randomises loot/enemies)
+ 
