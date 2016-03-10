@@ -45,6 +45,11 @@ class Bullet extends FlxSprite
 												 new FlxPoint(this.x + dx + centre_x_offset, this.y + dy + centre_y_offset), 0.05);
 		level.add(bulletTrace);*/
 		
+		moveBullet(dx, dy);
+	}
+	
+	private function moveBullet(dx:Float, dy:Float):Void
+	{
 		this.x += dx;
 		this.y += dy;
 		

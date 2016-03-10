@@ -4,6 +4,8 @@ import flixel.FlxG;
 import flixel.math.FlxAngle;
 import flixel.math.FlxPoint;
 import game.weapons.bullets.Bullet;
+import game.weapons.bullets.WillBullet;
+import game.weapons.bullets.AndrewsBullet;
 import game.weapons.damage.DamageModel;
 
 /**
@@ -22,7 +24,7 @@ class Weapon
 	{
 		this.level = level;
 		this.source = source;
-		this.fireCooldown = 0.1;
+		this.fireCooldown = 0.05;
 		damageModel = new DamageModel(0.2);
 	}
 	
@@ -40,8 +42,15 @@ class Weapon
 		var angle:Float = FlxAngle.angleBetweenPoint(source, target);
 		angle += FlxG.random.int( -1, 1) / 50.0;
 		
-		var bullet = new Bullet(level, source.x, source.y, Math.cos(angle) * 300, Math.sin(angle) * 300, damageModel);
-		level.add(bullet);
+		var bullet1 = new AndrewsBullet(level, source.x, source.y, Math.cos(angle - 0.05) * 300, Math.sin(angle - 0.05) * 300, damageModel);
+		bullet1.spiralAngle += Math.PI;
+		level.add(bullet1);
+		
+		var bullet2 = new Bullet(level, source.x, source.y, Math.cos(angle) * 300, Math.sin(angle) * 300, damageModel);
+		level.add(bullet2);
+		
+		var bullet3 = new AndrewsBullet(level, source.x, source.y, Math.cos(angle + 0.05) * 300, Math.sin(angle + 0.05) * 300, damageModel);
+		level.add(bullet3);
 	}
 	
 }
