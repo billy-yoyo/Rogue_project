@@ -5,30 +5,30 @@ import flixel.FlxG;
 import flixel.math.FlxPoint;
 import flixel.util.FlxColor;
 import flixel.system.FlxAssets.FlxGraphicAsset;
+import game.weapons.GrenadeLauncher;
 import game.weapons.Weapon;
 
 /**
  * ...
  * @author billy
  */
-class Player extends FlxSprite
+class Player extends RSprite
 {
 
-	public var speed:Float = 200;
 	public var weapon:Weapon;
-	public var level:PlayState;
 	public function new(level:PlayState, ?X:Float=0, ?Y:Float=0) 
 	{
-		super(X, Y);
+		super(level, X, Y, 200);
 		makeGraphic(8, 8, FlxColor.BLUE);
 		drag.x = drag.y = 1600;
-		weapon = new Weapon(level, this);
+		weapon = new GrenadeLauncher(level, this);
 	}
 	
 	override public function update(elapsed:Float):Void
 	{
 		movement();
 		firing(elapsed);
+		weapon.update(elapsed);
 		super.update(elapsed);
 	}
 	
@@ -55,8 +55,8 @@ class Player extends FlxSprite
 			_left = _right = false;
 			
 		if (_up || _down || _left || _right) {
-			velocity.x = speed;
-			velocity.y = speed;
+			velocity.x = rawSpeed;
+			velocity.y = rawSpeed;
 		
 		
 			var mA:Float = 0;
@@ -81,7 +81,7 @@ class Player extends FlxSprite
 			else if (_right)
 				mA = 0;
 			
-			velocity.set(speed, 0);
+			velocity.set(rawSpeed, 0);
 			velocity.rotate(FlxPoint.weak(0, 0), mA);
 		}
 	}

@@ -65,7 +65,6 @@ class RLevelGenerator
 	{
 		var tilemap:FlxTilemap = new FlxTilemap();
 		var mapString:String = convertToString();
-		trace(mapString);
 		tilemap.loadMapFromCSV(mapString, settings.tileset, settings.resolution, settings.resolution, 1);
 		tilemap.updateBuffers();
 		return tilemap;

@@ -65,7 +65,7 @@ ApplicationMain.init = function() {
 	if(total == 0) ApplicationMain.start();
 };
 ApplicationMain.main = function() {
-	ApplicationMain.config = { build : "175", company : "billy", file : "Rogueproject", fps : 60, name : "Rogue_project", orientation : "", packageName : "com.example.myapp", version : "0.0.1", windows : [{ antialiasing : 0, background : 0, borderless : false, depthBuffer : false, display : 0, fullscreen : false, hardware : false, height : 480, parameters : "{}", resizable : false, stencilBuffer : true, title : "Rogue_project", vsync : true, width : 640, x : null, y : null}]};
+	ApplicationMain.config = { build : "241", company : "billy", file : "Rogueproject", fps : 60, name : "Rogue_project", orientation : "", packageName : "com.example.myapp", version : "0.0.1", windows : [{ antialiasing : 0, background : 0, borderless : false, depthBuffer : false, display : 0, fullscreen : false, hardware : false, height : 480, parameters : "{}", resizable : false, stencilBuffer : true, title : "Rogue_project", vsync : true, width : 640, x : null, y : null}]};
 };
 ApplicationMain.start = function() {
 	var hasMain = false;
@@ -2512,6 +2512,7 @@ PlayState.__name__ = ["PlayState"];
 PlayState.__super__ = flixel_FlxState;
 PlayState.prototype = $extend(flixel_FlxState.prototype,{
 	create: function() {
+		this.enemies = new flixel_group_FlxTypedSpriteGroup(0,0,1000);
 		var levelgen = new level_RLevelGenerator(12,12);
 		levelgen.generateLevelMatrix();
 		this.tilemap = levelgen.generateLevel(Main.settings);
@@ -2524,13 +2525,21 @@ PlayState.prototype = $extend(flixel_FlxState.prototype,{
 		if(playerSpawns.length > 0) {
 			var playerPos = playerSpawns[flixel_FlxG.random["int"](0,playerSpawns.length - 1)];
 			this.player = new game_Player(this,playerPos.x,playerPos.y);
+			this.addEnemy(new game_enemies_Monster(this,playerPos.x,playerPos.y));
 			this.add(this.player);
-			haxe_Log.trace("player initialized",{ fileName : "PlayState.hx", lineNumber : 42, className : "PlayState", methodName : "create"});
-		} else haxe_Log.trace("no player spawn found",{ fileName : "PlayState.hx", lineNumber : 44, className : "PlayState", methodName : "create"});
-		this.enemies = new flixel_group_FlxTypedSpriteGroup(0,0,1000);
+			haxe_Log.trace("player initialized",{ fileName : "PlayState.hx", lineNumber : 46, className : "PlayState", methodName : "create"});
+		} else haxe_Log.trace("no player spawn found",{ fileName : "PlayState.hx", lineNumber : 48, className : "PlayState", methodName : "create"});
 		flixel_FlxG.camera.follow(this.player,flixel_FlxCameraFollowStyle.TOPDOWN,1);
 		flixel_FlxG.camera.setScale(1,1);
 		flixel_FlxState.prototype.create.call(this);
+	}
+	,addEnemy: function(enemy) {
+		this.enemies.add(enemy);
+		this.add(enemy);
+	}
+	,removeEnemy: function(enemy) {
+		this.enemies.remove(enemy);
+		this.remove(enemy);
 	}
 	,draw: function() {
 		flixel_FlxState.prototype.draw.call(this);
@@ -26922,23 +26931,42 @@ flixel_util_helpers_FlxRange.prototype = {
 	}
 	,__class__: flixel_util_helpers_FlxRange
 };
+var game_RSprite = function(level,X,Y,rawSpeed) {
+	if(rawSpeed == null) rawSpeed = 100;
+	this.level = level;
+	this.fsm = new game_ai_FSM();
+	this.rawSpeed = rawSpeed;
+	flixel_FlxSprite.call(this,X,Y);
+};
+$hxClasses["game.RSprite"] = game_RSprite;
+game_RSprite.__name__ = ["game","RSprite"];
+game_RSprite.__super__ = flixel_FlxSprite;
+game_RSprite.prototype = $extend(flixel_FlxSprite.prototype,{
+	moveSprite: function(dx,dy) {
+		var _g = this;
+		_g.set_x(_g.x + dx);
+		var _g1 = this;
+		_g1.set_y(_g1.y + dy);
+	}
+	,__class__: game_RSprite
+});
 var game_Player = function(level,X,Y) {
 	if(Y == null) Y = 0;
 	if(X == null) X = 0;
-	this.speed = 200;
-	flixel_FlxSprite.call(this,X,Y);
+	game_RSprite.call(this,level,X,Y,200);
 	this.makeGraphic(8,8,-16776961);
 	this.drag.set_x(this.drag.set_y(1600));
-	this.weapon = new game_weapons_Weapon(level,this);
+	this.weapon = new game_weapons_GrenadeLauncher(level,this);
 };
 $hxClasses["game.Player"] = game_Player;
 game_Player.__name__ = ["game","Player"];
-game_Player.__super__ = flixel_FlxSprite;
-game_Player.prototype = $extend(flixel_FlxSprite.prototype,{
+game_Player.__super__ = game_RSprite;
+game_Player.prototype = $extend(game_RSprite.prototype,{
 	update: function(elapsed) {
 		this.movement();
 		this.firing(elapsed);
-		flixel_FlxSprite.prototype.update.call(this,elapsed);
+		this.weapon.update(elapsed);
+		game_RSprite.prototype.update.call(this,elapsed);
 	}
 	,firing: function(elapsed) {
 		if(flixel_FlxG.keys.checkKeyArrayState([32],1)) this.weapon.fire(elapsed,flixel_FlxG.mouse.x,flixel_FlxG.mouse.y);
@@ -26955,8 +26983,8 @@ game_Player.prototype = $extend(flixel_FlxSprite.prototype,{
 		if(_up && _down) _up = _down = false;
 		if(_left && _right) _left = _right = false;
 		if(_up || _down || _left || _right) {
-			this.velocity.set_x(this.speed);
-			this.velocity.set_y(this.speed);
+			this.velocity.set_x(this.rawSpeed);
+			this.velocity.set_y(this.rawSpeed);
 			var mA = 0;
 			if(_up) {
 				mA = -90;
@@ -26965,88 +26993,271 @@ game_Player.prototype = $extend(flixel_FlxSprite.prototype,{
 				mA = 90;
 				if(_left) mA += 45; else if(_right) mA -= 45;
 			} else if(_left) mA = 180; else if(_right) mA = 0;
-			this.velocity.set(this.speed,0);
+			this.velocity.set(this.rawSpeed,0);
 			this.velocity.rotate(flixel_math_FlxPoint.weak(0,0),mA);
 		}
 	}
 	,__class__: game_Player
 });
-var game_enemies_Enemy = function(X,Y,health) {
-	flixel_FlxSprite.call(this,X,Y);
+var game_ai_AIState = function(sprite) {
+	this.sprite = sprite;
+};
+$hxClasses["game.ai.AIState"] = game_ai_AIState;
+game_ai_AIState.__name__ = ["game","ai","AIState"];
+game_ai_AIState.prototype = {
+	begin: function() {
+	}
+	,end: function() {
+	}
+	,update: function(elapsed) {
+	}
+	,__class__: game_ai_AIState
+};
+var game_ai_EnemyAgroState = function(sprite,visionRadius) {
+	game_ai_AIState.call(this,sprite);
+	this.visionRadius = visionRadius;
+};
+$hxClasses["game.ai.EnemyAgroState"] = game_ai_EnemyAgroState;
+game_ai_EnemyAgroState.__name__ = ["game","ai","EnemyAgroState"];
+game_ai_EnemyAgroState.__super__ = game_ai_AIState;
+game_ai_EnemyAgroState.prototype = $extend(game_ai_AIState.prototype,{
+	begin: function() {
+		this.trackTime = 0.1;
+		if(this.sprite.fsm.stateSpriteData.exists("target")) {
+			var target = this.sprite.fsm.stateSpriteData.get("target");
+			var dist = Math.sqrt(Math.pow(target.x - this.sprite.x,2) + Math.pow(target.y - this.sprite.y,2));
+			if(dist <= this.visionRadius) {
+				this.path = this.sprite.level.tilemap.findPath(new flixel_math_FlxPoint(this.sprite.x,this.sprite.y),new flixel_math_FlxPoint(target.x,target.y));
+				if(this.path.length > 1) {
+					this.pathProgress = 0;
+					this.pathVector = new flixel_math_FlxVector(this.path[1].x - this.path[0].x,this.path[1].y - this.path[0].y);
+				} else this.sprite.fsm.setState("idle");
+			} else this.sprite.fsm.setState("idle");
+		} else this.sprite.fsm.setState("idle");
+	}
+	,update: function(elapsed) {
+		var length = this.sprite.rawSpeed * elapsed;
+		this.sprite.moveSprite(length * this.pathVector.get_dx(),length * this.pathVector.get_dy());
+		this.pathTravelled += length;
+		if(this.pathTravelled >= this.pathVector.get_length()) {
+			this.pathTravelled = 0;
+			this.pathProgress += 1;
+			if(this.pathProgress + 1 < this.path.length) this.pathVector = new flixel_math_FlxVector(this.path[this.pathProgress + 1].x - this.path[this.pathProgress].x,this.path[this.pathProgress + 1].y - this.path[this.pathProgress].y); else this.begin();
+		}
+		this.trackTime -= elapsed;
+		if(this.trackTime <= 0) this.begin();
+	}
+	,__class__: game_ai_EnemyAgroState
+});
+var game_ai_EnemyIdleState = function(sprite,visionRadius) {
+	game_ai_AIState.call(this,sprite);
+	this.visionRadius = visionRadius;
+};
+$hxClasses["game.ai.EnemyIdleState"] = game_ai_EnemyIdleState;
+game_ai_EnemyIdleState.__name__ = ["game","ai","EnemyIdleState"];
+game_ai_EnemyIdleState.__super__ = game_ai_AIState;
+game_ai_EnemyIdleState.prototype = $extend(game_ai_AIState.prototype,{
+	update: function(elapsed) {
+		var player = this.sprite.level.player;
+		var dx = player.x - this.sprite.x;
+		var dy = player.y - this.sprite.y;
+		var dist = Math.sqrt(dx * dx + dy * dy);
+		if(dist <= this.visionRadius) {
+			if(this.sprite.level.tilemap.ray(new flixel_math_FlxPoint(this.sprite.x,this.sprite.y),new flixel_math_FlxPoint(player.x,player.y))) {
+				haxe_Log.trace("target found",{ fileName : "EnemyIdleState.hx", lineNumber : 27, className : "game.ai.EnemyIdleState", methodName : "update"});
+				this.sprite.fsm.stateSpriteData.set("target",player);
+				this.sprite.fsm.setState("agro");
+			}
+		}
+	}
+	,__class__: game_ai_EnemyIdleState
+});
+var game_ai_FSM = function() {
+	this.states = new haxe_ds_StringMap();
+	this.stateSpriteData = new haxe_ds_StringMap();
+	this.stateStringData = new haxe_ds_StringMap();
+};
+$hxClasses["game.ai.FSM"] = game_ai_FSM;
+game_ai_FSM.__name__ = ["game","ai","FSM"];
+game_ai_FSM.prototype = {
+	registerState: function(stateName,newState) {
+		this.states.set(stateName,newState);
+		return this;
+	}
+	,setState: function(state) {
+		if(this.state != null) this.states.get(this.state).end();
+		this.state = state;
+		this.states.get(this.state).begin();
+	}
+	,update: function(elapsed) {
+		if(this.state != null) this.states.get(this.state).update(elapsed);
+	}
+	,__class__: game_ai_FSM
+};
+var game_enemies_Enemy = function(level,X,Y,health,speed) {
+	if(speed == null) speed = 100;
+	game_RSprite.call(this,level,X,Y,speed);
 	this.health = health;
 };
 $hxClasses["game.enemies.Enemy"] = game_enemies_Enemy;
 game_enemies_Enemy.__name__ = ["game","enemies","Enemy"];
-game_enemies_Enemy.__super__ = flixel_FlxSprite;
-game_enemies_Enemy.prototype = $extend(flixel_FlxSprite.prototype,{
-	dealDamage: function(damage) {
+game_enemies_Enemy.__super__ = game_RSprite;
+game_enemies_Enemy.prototype = $extend(game_RSprite.prototype,{
+	update: function(elapsed) {
+		this.fsm.update(elapsed);
+		game_RSprite.prototype.update.call(this,elapsed);
+		if(this.health <= 0) this.level.removeEnemy(this);
+	}
+	,push: function(dx,dy) {
+		this.moveSprite(dx,dy);
+		flixel_FlxG.overlap(this,this.level.tilemap,null,flixel_FlxObject.separate);
+	}
+	,dealDamage: function(damage) {
 		this.health = this.health - damage.calculateDamage(this);
 	}
 	,__class__: game_enemies_Enemy
+});
+var game_enemies_Monster = function(level,X,Y) {
+	game_enemies_Enemy.call(this,level,X,Y,10,80);
+	this.fsm.registerState("idle",new game_ai_EnemyIdleState(this,100));
+	this.fsm.registerState("agro",new game_ai_EnemyAgroState(this,100));
+	this.fsm.setState("idle");
+	this.makeGraphic(5,5,-16776961);
+};
+$hxClasses["game.enemies.Monster"] = game_enemies_Monster;
+game_enemies_Monster.__name__ = ["game","enemies","Monster"];
+game_enemies_Monster.__super__ = game_enemies_Enemy;
+game_enemies_Monster.prototype = $extend(game_enemies_Enemy.prototype,{
+	__class__: game_enemies_Monster
 });
 var game_weapons_Weapon = function(level,source) {
 	this.currentCooldown = 0;
 	this.level = level;
 	this.source = source;
 	this.fireCooldown = 0.05;
+	this.lastBullets = [];
+	this.newBullets = [];
 	this.damageModel = new game_weapons_damage_DamageModel(0.2);
 };
 $hxClasses["game.weapons.Weapon"] = game_weapons_Weapon;
 game_weapons_Weapon.__name__ = ["game","weapons","Weapon"];
 game_weapons_Weapon.prototype = {
-	fire: function(elapsed,targetX,targetY) {
-		this.currentCooldown = this.currentCooldown - elapsed;
+	update: function(elapsed) {
+		if(this.currentCooldown > 0) this.currentCooldown = this.currentCooldown - elapsed;
+	}
+	,fire: function(elapsed,targetX,targetY) {
 		if(this.currentCooldown <= 0) {
+			this.newBullets = [];
 			this.currentCooldown = this.fireCooldown;
 			this.forceFire(targetX,targetY);
+			this.lastBullets = this.newBullets;
 		}
 	}
 	,forceFire: function(targetX,targetY) {
 		var target = new flixel_math_FlxPoint(targetX,targetY);
 		var angle = flixel_math_FlxAngle.angleBetweenPoint(this.source,target);
 		angle += flixel_FlxG.random["int"](-1,1) / 50.0;
-		var bullet1 = new game_weapons_bullets_AndrewsBullet(this.level,this.source.x,this.source.y,Math.cos(angle - 0.05) * 300,Math.sin(angle - 0.05) * 300,this.damageModel);
-		bullet1.spiralAngle += Math.PI;
-		this.level.add(bullet1);
-		var bullet2 = new game_weapons_bullets_Bullet(this.level,this.source.x,this.source.y,Math.cos(angle) * 300,Math.sin(angle) * 300,this.damageModel);
-		this.level.add(bullet2);
-		var bullet3 = new game_weapons_bullets_AndrewsBullet(this.level,this.source.x,this.source.y,Math.cos(angle + 0.05) * 300,Math.sin(angle + 0.05) * 300,this.damageModel);
-		this.level.add(bullet3);
+		this.shootBullet(new game_weapons_bullets_BouncyBullet(this.level,this.source.x,this.source.y,Math.cos(angle) * 300,Math.sin(angle) * 300,this.damageModel,5));
+	}
+	,shootBullet: function(bullet) {
+		this.level.add(bullet);
+		this.newBullets.push(bullet);
 	}
 	,__class__: game_weapons_Weapon
 };
+var game_weapons_GrenadeLauncher = function(level,source) {
+	game_weapons_Weapon.call(this,level,source);
+	this.fireCooldown = 1;
+};
+$hxClasses["game.weapons.GrenadeLauncher"] = game_weapons_GrenadeLauncher;
+game_weapons_GrenadeLauncher.__name__ = ["game","weapons","GrenadeLauncher"];
+game_weapons_GrenadeLauncher.__super__ = game_weapons_Weapon;
+game_weapons_GrenadeLauncher.prototype = $extend(game_weapons_Weapon.prototype,{
+	forceFire: function(targetX,targetY) {
+		var target = new flixel_math_FlxPoint(targetX,targetY);
+		var angle = flixel_math_FlxAngle.angleBetweenPoint(this.source,target);
+		angle += flixel_FlxG.random["int"](-1,1) / 50.0;
+		this.shootBullet(new game_weapons_bullets_Grenade(this.level,this.source.x,this.source.y,Math.cos(angle) * 70,Math.sin(angle) * 70,30,1.5));
+	}
+	,__class__: game_weapons_GrenadeLauncher
+});
 var game_weapons_bullets_Bullet = function(level,X,Y,SpeedX,SpeedY,damage) {
+	this.life = 0;
+	this.hasLife = false;
+	this.knockback = 0;
+	this.bouncy = false;
+	this.mapPiercing = false;
+	this.enemyPiercing = false;
 	this.hasCollided = false;
-	flixel_FlxSprite.call(this,X,Y);
+	game_RSprite.call(this,level,X,Y,Math.sqrt(SpeedX * SpeedX + SpeedY * SpeedY));
 	this.makeGraphic(3,3,-16776961);
 	this.centre_x_offset = 1.5;
 	this.centre_y_offset = 1.5;
-	this.speed = new flixel_math_FlxPoint(SpeedX,SpeedY);
+	this.speed = new flixel_math_FlxVector(SpeedX,SpeedY);
 	this.level = level;
 	this.damage = damage;
 };
 $hxClasses["game.weapons.bullets.Bullet"] = game_weapons_bullets_Bullet;
 game_weapons_bullets_Bullet.__name__ = ["game","weapons","bullets","Bullet"];
-game_weapons_bullets_Bullet.__super__ = flixel_FlxSprite;
-game_weapons_bullets_Bullet.prototype = $extend(flixel_FlxSprite.prototype,{
-	update: function(elapsed) {
+game_weapons_bullets_Bullet.__super__ = game_RSprite;
+game_weapons_bullets_Bullet.prototype = $extend(game_RSprite.prototype,{
+	getPerp: function(offset) {
+		var vector = new flixel_math_FlxVector(this.speed.x,this.speed.y);
+		vector.rotateByRadians(90 * (Math.PI / 180));
+		return new flixel_math_FlxPoint((Math.abs(vector.x) < 0.0000001 && Math.abs(vector.y) < 0.0000001?0:vector.x / Math.sqrt(vector.x * vector.x + vector.y * vector.y)) * offset,(Math.abs(vector.x) < 0.0000001 && Math.abs(vector.y) < 0.0000001?0:vector.y / Math.sqrt(vector.x * vector.x + vector.y * vector.y)) * offset);
+	}
+	,endOfLife: function() {
+		this.level.remove(this);
+	}
+	,update: function(elapsed) {
+		if(this.hasLife) {
+			this.life -= elapsed;
+			if(this.life <= 0) this.endOfLife();
+		}
 		this.movement(elapsed);
+		game_RSprite.prototype.update.call(this,elapsed);
 	}
 	,movement: function(elapsed) {
 		var dx = this.speed.x * elapsed;
 		var dy = this.speed.y * elapsed;
-		this.moveBullet(dx,dy);
+		this.moveSprite(dx,dy);
 	}
-	,moveBullet: function(dx,dy) {
+	,hitWall: function() {
+		this.hasCollided = true;
+		this.level.remove(this);
+	}
+	,moveSprite: function(dx,dy) {
 		var _g = this;
 		_g.set_x(_g.x + dx);
 		var _g1 = this;
 		_g1.set_y(_g1.y + dy);
-		flixel_FlxG.overlap(this,this.level.enemies,$bind(this,this.handleEnemyCollision),flixel_FlxObject.separate);
-		if(flixel_FlxG.overlap(this,this.level.tilemap,null,flixel_FlxObject.separate)) {
-			this.hasCollided = true;
-			this.level.remove(this);
+		flixel_FlxG.overlap(this,this.level.enemies,$bind(this,this.handleEnemyCollision));
+		if(this.mapPiercing == false) {
+			if(this.bouncy == false) {
+				if(flixel_FlxG.overlap(this.level.tilemap,this,null,flixel_FlxObject.separate)) this.hitWall();
+			} else {
+				var _g2 = this;
+				_g2.set_y(_g2.y - dy);
+				if(flixel_FlxG.overlap(this.level.tilemap,this,null,flixel_FlxObject.separate)) {
+					var _g3 = this;
+					_g3.set_x(_g3.x - dx);
+					this.speed.set_x(this.speed.x * -1);
+				}
+				var _g4 = this;
+				_g4.set_y(_g4.y + dy);
+				if(flixel_FlxG.overlap(this.level.tilemap,this,null,flixel_FlxObject.separate)) {
+					var _g5 = this;
+					_g5.set_y(_g5.y - dy);
+					this.speed.set_y(this.speed.y * -1);
+				}
+			}
 		}
+	}
+	,hitEnemy: function(enemy) {
+		this.hasCollided = true;
+		if(this.enemyPiercing == false) this.level.remove(this);
+		enemy.dealDamage(this.damage);
+		if(this.knockback > 0) enemy.push(this.speed.get_dx() * this.knockback,this.speed.get_dy() * this.knockback);
 	}
 	,handleEnemyCollision: function(obj1,obj2) {
 		if(this.hasCollided == false) {
@@ -27054,9 +27265,7 @@ game_weapons_bullets_Bullet.prototype = $extend(flixel_FlxSprite.prototype,{
 			if(obj1 == this) obj = obj2;
 			var enemy;
 			enemy = js_Boot.__cast(obj , game_enemies_Enemy);
-			this.hasCollided = true;
-			this.level.remove(this);
-			enemy.dealDamage(this.damage);
+			this.hitEnemy(enemy);
 		}
 	}
 	,__class__: game_weapons_bullets_Bullet
@@ -27086,27 +27295,74 @@ game_weapons_bullets_AndrewsBullet.prototype = $extend(game_weapons_bullets_Bull
 	}
 	,__class__: game_weapons_bullets_AndrewsBullet
 });
-var game_weapons_bullets_WillBullet = function(level,X,Y,SpeedX,SpeedY,damage) {
+var game_weapons_bullets_BouncyBullet = function(level,X,Y,SpeedX,SpeedY,damage,life) {
+	game_weapons_bullets_Bullet.call(this,level,X,Y,SpeedX,SpeedY,damage);
+	this.bouncy = true;
+	this.hasLife = true;
+	this.life = life;
+};
+$hxClasses["game.weapons.bullets.BouncyBullet"] = game_weapons_bullets_BouncyBullet;
+game_weapons_bullets_BouncyBullet.__name__ = ["game","weapons","bullets","BouncyBullet"];
+game_weapons_bullets_BouncyBullet.__super__ = game_weapons_bullets_Bullet;
+game_weapons_bullets_BouncyBullet.prototype = $extend(game_weapons_bullets_Bullet.prototype,{
+	__class__: game_weapons_bullets_BouncyBullet
+});
+var game_weapons_bullets_Grenade = function(level,X,Y,SpeedX,SpeedY,explosionAmount,fuse) {
+	if(fuse == null) fuse = 0;
+	game_weapons_bullets_Bullet.call(this,level,X,Y,SpeedX,SpeedY,new game_weapons_damage_DamageModel(0));
+	this.explosionAmount = explosionAmount;
+	this.bouncy = true;
+	this.hasLife = true;
+	this.enemyPiercing = true;
+	this.life = fuse;
+};
+$hxClasses["game.weapons.bullets.Grenade"] = game_weapons_bullets_Grenade;
+game_weapons_bullets_Grenade.__name__ = ["game","weapons","bullets","Grenade"];
+game_weapons_bullets_Grenade.__super__ = game_weapons_bullets_Bullet;
+game_weapons_bullets_Grenade.prototype = $extend(game_weapons_bullets_Bullet.prototype,{
+	endOfLife: function() {
+		var angle_step = Math.PI * 2 / this.explosionAmount;
+		var _g1 = 0;
+		var _g = this.explosionAmount;
+		while(_g1 < _g) {
+			var i = _g1++;
+			var angle = angle_step * i;
+			var bullet = new game_weapons_bullets_GrenadeShrapnel(this.level,this.x,this.y,Math.cos(angle) * 300,Math.sin(angle) * 300,new game_weapons_damage_DamageModel(0.5),0.2);
+			this.level.add(bullet);
+		}
+		game_weapons_bullets_Bullet.prototype.endOfLife.call(this);
+	}
+	,__class__: game_weapons_bullets_Grenade
+});
+var game_weapons_bullets_GrenadeShrapnel = function(level,X,Y,SpeedX,SpeedY,damage,life) {
+	if(life == null) life = 0.1;
+	game_weapons_bullets_Bullet.call(this,level,X,Y,SpeedX,SpeedY,damage);
+	this.hasLife = true;
+	this.enemyPiercing = true;
+	this.life = life;
+};
+$hxClasses["game.weapons.bullets.GrenadeShrapnel"] = game_weapons_bullets_GrenadeShrapnel;
+game_weapons_bullets_GrenadeShrapnel.__name__ = ["game","weapons","bullets","GrenadeShrapnel"];
+game_weapons_bullets_GrenadeShrapnel.__super__ = game_weapons_bullets_Bullet;
+game_weapons_bullets_GrenadeShrapnel.prototype = $extend(game_weapons_bullets_Bullet.prototype,{
+	__class__: game_weapons_bullets_GrenadeShrapnel
+});
+var game_weapons_bullets_WillBullet = function(level,X,Y,SpeedX,SpeedY,damage,spiral) {
+	if(spiral == null) spiral = 0;
 	this.spiralAngle = 0;
 	game_weapons_bullets_Bullet.call(this,level,X,Y,SpeedX,SpeedY,damage);
+	this.spiralAngle = spiral;
 };
 $hxClasses["game.weapons.bullets.WillBullet"] = game_weapons_bullets_WillBullet;
 game_weapons_bullets_WillBullet.__name__ = ["game","weapons","bullets","WillBullet"];
 game_weapons_bullets_WillBullet.__super__ = game_weapons_bullets_Bullet;
 game_weapons_bullets_WillBullet.prototype = $extend(game_weapons_bullets_Bullet.prototype,{
 	movement: function(elapsed) {
-		this.spiralAngle += 0.05;
-		var dx = this.speed.x * elapsed + Math.cos(this.spiralAngle) * 2;
-		var dy = this.speed.y * elapsed + Math.sin(this.spiralAngle) * 2;
-		var _g = this;
-		_g.set_x(_g.x + dx);
-		var _g1 = this;
-		_g1.set_y(_g1.y + dy);
-		flixel_FlxG.overlap(this,this.level.enemies,$bind(this,this.handleEnemyCollision),flixel_FlxObject.separate);
-		if(flixel_FlxG.overlap(this,this.level.tilemap,null,flixel_FlxObject.separate)) {
-			this.hasCollided = true;
-			this.level.remove(this);
-		}
+		this.spiralAngle += 0.2;
+		var perpVec = this.getPerp(Math.sin(this.spiralAngle) * 0.5);
+		var dx = this.speed.x * elapsed + perpVec.x;
+		var dy = this.speed.y * elapsed + perpVec.y;
+		this.moveSprite(dx,dy);
 	}
 	,__class__: game_weapons_bullets_WillBullet
 });
@@ -29184,7 +29440,6 @@ level_RLevelGenerator.prototype = {
 	,generateLevel: function(settings) {
 		var tilemap = new flixel_tile_FlxTilemap();
 		var mapString = this.convertToString();
-		haxe_Log.trace(mapString,{ fileName : "RLevelGenerator.hx", lineNumber : 68, className : "level.RLevelGenerator", methodName : "generateLevel"});
 		tilemap.loadMapFromCSV(mapString,settings.tileset,settings.resolution,settings.resolution,null,1);
 		tilemap.updateBuffers();
 		return tilemap;

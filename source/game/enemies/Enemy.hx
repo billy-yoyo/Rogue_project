@@ -1,22 +1,37 @@
 package game.enemies;
 
 import flixel.FlxSprite;
+import flixel.FlxG;
+import game.ai.FSM;
 import game.weapons.damage.DamageModel;
 
 /**
  * ...
  * @author billy
  */
-class Enemy extends FlxSprite
+class Enemy extends RSprite
 {
 	
-	public function new(X:Float, Y:Float, health:Float) 
+	public function new(level:PlayState, X:Float, Y:Float, health:Float, speed:Float = 100) 
 	{
-		super(X, Y);
+		super(level, X, Y, speed);
 		this.health = health;
 	}
 	
-	public function dealDamage(damage:DamageModel) {
+	override public function update(elapsed:Float):Void {
+		fsm.update(elapsed);
+		super.update(elapsed);
+		if (this.health <= 0) {
+			level.removeEnemy(this);
+		}
+	}
+	
+	public function push(dx:Float, dy:Float) {
+		moveSprite(dx, dy);
+		FlxG.collide(this, level.tilemap);
+	}
+	
+	public function dealDamage(damage:DamageModel):Void {
 		health = health - damage.calculateDamage(this);
 	}
 }
