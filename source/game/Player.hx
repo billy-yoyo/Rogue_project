@@ -21,7 +21,7 @@ class Player extends RSprite
 		super(level, X, Y, 200);
 		makeGraphic(8, 8, FlxColor.BLUE);
 		drag.x = drag.y = 1600;
-		weapon = new GrenadeLauncher(level, this);
+		weapon = new Weapon(level, this);
 	}
 	
 	override public function update(elapsed:Float):Void

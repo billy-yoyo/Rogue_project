@@ -65,7 +65,7 @@ ApplicationMain.init = function() {
 	if(total == 0) ApplicationMain.start();
 };
 ApplicationMain.main = function() {
-	ApplicationMain.config = { build : "241", company : "billy", file : "Rogueproject", fps : 60, name : "Rogue_project", orientation : "", packageName : "com.example.myapp", version : "0.0.1", windows : [{ antialiasing : 0, background : 0, borderless : false, depthBuffer : false, display : 0, fullscreen : false, hardware : false, height : 480, parameters : "{}", resizable : false, stencilBuffer : true, title : "Rogue_project", vsync : true, width : 640, x : null, y : null}]};
+	ApplicationMain.config = { build : "366", company : "billy", file : "Rogueproject", fps : 60, name : "Rogue_project", orientation : "", packageName : "com.example.myapp", version : "0.0.1", windows : [{ antialiasing : 0, background : 0, borderless : false, depthBuffer : false, display : 0, fullscreen : false, hardware : false, height : 480, parameters : "{}", resizable : false, stencilBuffer : true, title : "Rogue_project", vsync : true, width : 640, x : null, y : null}]};
 };
 ApplicationMain.start = function() {
 	var hasMain = false;
@@ -1398,7 +1398,7 @@ var Main = function() {
 	Main.currentLevel = levelgen.generateLevel(Main.settings);
 	haxe_Log.trace("level finalized",{ fileName : "Main.hx", lineNumber : 30, className : "Main", methodName : "new"});
 	openfl_display_Sprite.call(this);
-	this.addChild(new flixel_FlxGame(320,240,MenuState,1,60,60,true,false));
+	this.addChild(new flixel_FlxGame(640,480,MenuState,1,60,60,true,false));
 };
 $hxClasses["Main"] = Main;
 Main.__name__ = ["Main"];
@@ -1907,6 +1907,14 @@ Lambda.array = function(it) {
 		a.push(i);
 	}
 	return a;
+};
+Lambda.has = function(it,elt) {
+	var $it0 = $iterator(it)();
+	while( $it0.hasNext() ) {
+		var x = $it0.next();
+		if(x == elt) return true;
+	}
+	return false;
 };
 var List = function() {
 	this.length = 0;
@@ -2505,6 +2513,8 @@ NMEPreloader.prototype = $extend(openfl_display_Sprite.prototype,{
 	,__class__: NMEPreloader
 });
 var PlayState = function(MaxSize) {
+	this.visionRadius = 100;
+	this.visionFidelity = 100;
 	flixel_FlxState.call(this,MaxSize);
 };
 $hxClasses["PlayState"] = PlayState;
@@ -2513,10 +2523,12 @@ PlayState.__super__ = flixel_FlxState;
 PlayState.prototype = $extend(flixel_FlxState.prototype,{
 	create: function() {
 		this.enemies = new flixel_group_FlxTypedSpriteGroup(0,0,1000);
-		var levelgen = new level_RLevelGenerator(12,12);
+		this.visionStep = Math.PI * 2 / this.visionFidelity;
+		this.visionFidelity += 1;
+		var levelgen = new level_RLevelGenerator(100,100);
 		levelgen.generateLevelMatrix();
 		this.tilemap = levelgen.generateLevel(Main.settings);
-		this.tilemap.follow();
+		flixel_FlxG.worldBounds.set(0,0,this.tilemap.get_width(),this.tilemap.get_height());
 		this.tilemap.setTileProperties(level_RId.TILE_BASE_FLOOR,0);
 		this.tilemap.setTileProperties(level_RId.TILE_BASE_WALL,4369);
 		this.tilemap.setTileProperties(level_RId.SPAWN_PLAYER,0);
@@ -2525,11 +2537,12 @@ PlayState.prototype = $extend(flixel_FlxState.prototype,{
 		if(playerSpawns.length > 0) {
 			var playerPos = playerSpawns[flixel_FlxG.random["int"](0,playerSpawns.length - 1)];
 			this.player = new game_Player(this,playerPos.x,playerPos.y);
-			this.addEnemy(new game_enemies_Monster(this,playerPos.x,playerPos.y));
+			this.addEnemy(new game_enemies_Monster(this,playerPos.x + 70,playerPos.y + 70));
+			this.add(new game_traps_types_BearTrap(this,playerPos.x,playerPos.y,new game_weapons_damage_DamageModel(3)));
 			this.add(this.player);
-			haxe_Log.trace("player initialized",{ fileName : "PlayState.hx", lineNumber : 46, className : "PlayState", methodName : "create"});
-		} else haxe_Log.trace("no player spawn found",{ fileName : "PlayState.hx", lineNumber : 48, className : "PlayState", methodName : "create"});
-		flixel_FlxG.camera.follow(this.player,flixel_FlxCameraFollowStyle.TOPDOWN,1);
+			haxe_Log.trace("player initialized",{ fileName : "PlayState.hx", lineNumber : 60, className : "PlayState", methodName : "create"});
+		} else haxe_Log.trace("no player spawn found",{ fileName : "PlayState.hx", lineNumber : 62, className : "PlayState", methodName : "create"});
+		flixel_FlxG.camera.follow(this.player,flixel_FlxCameraFollowStyle.LOCKON,1);
 		flixel_FlxG.camera.setScale(1,1);
 		flixel_FlxState.prototype.create.call(this);
 	}
@@ -26936,13 +26949,25 @@ var game_RSprite = function(level,X,Y,rawSpeed) {
 	this.level = level;
 	this.fsm = new game_ai_FSM();
 	this.rawSpeed = rawSpeed;
+	this.effects = [];
 	flixel_FlxSprite.call(this,X,Y);
 };
 $hxClasses["game.RSprite"] = game_RSprite;
 game_RSprite.__name__ = ["game","RSprite"];
 game_RSprite.__super__ = flixel_FlxSprite;
 game_RSprite.prototype = $extend(flixel_FlxSprite.prototype,{
-	moveSprite: function(dx,dy) {
+	update: function(elapsed) {
+		this.fsm.update(elapsed);
+		var _g = 0;
+		var _g1 = this.effects;
+		while(_g < _g1.length) {
+			var effect = _g1[_g];
+			++_g;
+			effect.update(elapsed);
+		}
+		flixel_FlxSprite.prototype.update.call(this,elapsed);
+	}
+	,moveSprite: function(dx,dy) {
 		var _g = this;
 		_g.set_x(_g.x + dx);
 		var _g1 = this;
@@ -26956,7 +26981,7 @@ var game_Player = function(level,X,Y) {
 	game_RSprite.call(this,level,X,Y,200);
 	this.makeGraphic(8,8,-16776961);
 	this.drag.set_x(this.drag.set_y(1600));
-	this.weapon = new game_weapons_GrenadeLauncher(level,this);
+	this.weapon = new game_weapons_Weapon(level,this);
 };
 $hxClasses["game.Player"] = game_Player;
 game_Player.__name__ = ["game","Player"];
@@ -27027,25 +27052,32 @@ game_ai_EnemyAgroState.prototype = $extend(game_ai_AIState.prototype,{
 			var target = this.sprite.fsm.stateSpriteData.get("target");
 			var dist = Math.sqrt(Math.pow(target.x - this.sprite.x,2) + Math.pow(target.y - this.sprite.y,2));
 			if(dist <= this.visionRadius) {
-				this.path = this.sprite.level.tilemap.findPath(new flixel_math_FlxPoint(this.sprite.x,this.sprite.y),new flixel_math_FlxPoint(target.x,target.y));
-				if(this.path.length > 1) {
-					this.pathProgress = 0;
-					this.pathVector = new flixel_math_FlxVector(this.path[1].x - this.path[0].x,this.path[1].y - this.path[0].y);
-				} else this.sprite.fsm.setState("idle");
+				if(this.sprite.level.tilemap.ray(new flixel_math_FlxPoint(this.sprite.x,this.sprite.y),new flixel_math_FlxPoint(target.x,target.y))) {
+					this.path = this.sprite.level.tilemap.findPath(new flixel_math_FlxPoint(this.sprite.x,this.sprite.y),new flixel_math_FlxPoint(target.x,target.y));
+					if(this.path != null) {
+						this.path.push(new flixel_math_FlxPoint(target.x,target.y));
+						if(this.path.length > 1) {
+							this.pathProgress = 0;
+							this.pathVector = new flixel_math_FlxVector(this.path[1].x - this.path[0].x,this.path[1].y - this.path[0].y);
+						} else this.sprite.fsm.setState("idle");
+					} else this.sprite.fsm.setState("idle");
+				} else if(this.path == null || this.pathProgress + 1 >= this.path.length) this.sprite.fsm.setState("idle");
 			} else this.sprite.fsm.setState("idle");
 		} else this.sprite.fsm.setState("idle");
 	}
 	,update: function(elapsed) {
 		var length = this.sprite.rawSpeed * elapsed;
 		this.sprite.moveSprite(length * this.pathVector.get_dx(),length * this.pathVector.get_dy());
-		this.pathTravelled += length;
-		if(this.pathTravelled >= this.pathVector.get_length()) {
-			this.pathTravelled = 0;
-			this.pathProgress += 1;
-			if(this.pathProgress + 1 < this.path.length) this.pathVector = new flixel_math_FlxVector(this.path[this.pathProgress + 1].x - this.path[this.pathProgress].x,this.path[this.pathProgress + 1].y - this.path[this.pathProgress].y); else this.begin();
+		if(flixel_FlxG.overlap(this.sprite.level.tilemap,this.sprite,null,flixel_FlxObject.separate)) this.begin(); else {
+			this.pathTravelled += length;
+			if(this.pathTravelled >= this.pathVector.get_length()) {
+				this.pathTravelled = 0;
+				this.pathProgress += 1;
+				if(this.pathProgress + 1 < this.path.length) this.pathVector = new flixel_math_FlxVector(this.path[this.pathProgress + 1].x - this.path[this.pathProgress].x,this.path[this.pathProgress + 1].y - this.path[this.pathProgress].y); else this.begin();
+			}
+			this.trackTime -= elapsed;
+			if(this.trackTime <= 0) this.begin();
 		}
-		this.trackTime -= elapsed;
-		if(this.trackTime <= 0) this.begin();
 	}
 	,__class__: game_ai_EnemyAgroState
 });
@@ -27094,6 +27126,147 @@ game_ai_FSM.prototype = {
 	}
 	,__class__: game_ai_FSM
 };
+var game_ai_TurretAgroState = function(sprite,visionRadius,fireTime) {
+	game_ai_AIState.call(this,sprite);
+	this.visionRadius = visionRadius;
+	this.fireTime = fireTime;
+};
+$hxClasses["game.ai.TurretAgroState"] = game_ai_TurretAgroState;
+game_ai_TurretAgroState.__name__ = ["game","ai","TurretAgroState"];
+game_ai_TurretAgroState.__super__ = game_ai_AIState;
+game_ai_TurretAgroState.prototype = $extend(game_ai_AIState.prototype,{
+	begin: function() {
+		if(this.sprite.fsm.stateSpriteData.exists("target")) {
+			var target = this.sprite.fsm.stateSpriteData.get("target");
+			var dist = Math.sqrt(Math.pow(target.x - this.sprite.x,2) + Math.pow(target.y - this.sprite.y,2));
+			if(dist <= this.visionRadius) {
+				this.target = target;
+				this.fireCD = this.fireTime;
+			} else this.sprite.fsm.setState("idle");
+		} else this.sprite.fsm.setState("idle");
+	}
+	,update: function(elapsed) {
+		if(this.target != null) {
+			this.fireCD -= elapsed;
+			if(this.fireCD <= 0) {
+				var dist = Math.sqrt(Math.pow(this.target.x - this.sprite.x,2) + Math.pow(this.target.y - this.sprite.y,2));
+				if(dist <= this.visionRadius) {
+					var turret;
+					turret = js_Boot.__cast(this.sprite , game_turrets_Turret);
+					turret.fireAt(this.target);
+					if(this.target.health <= 0) this.sprite.fsm.setState("idle"); else this.begin();
+				} else this.sprite.fsm.setState("idle");
+			}
+		}
+	}
+	,__class__: game_ai_TurretAgroState
+});
+var game_ai_TurretIdleState = function(sprite,visionRadius) {
+	game_ai_AIState.call(this,sprite);
+	this.visionRadius = visionRadius;
+};
+$hxClasses["game.ai.TurretIdleState"] = game_ai_TurretIdleState;
+game_ai_TurretIdleState.__name__ = ["game","ai","TurretIdleState"];
+game_ai_TurretIdleState.__super__ = game_ai_AIState;
+game_ai_TurretIdleState.prototype = $extend(game_ai_AIState.prototype,{
+	update: function(elapsed) {
+		var minDist = -1;
+		var closest = null;
+		var $it0 = new flixel_group_FlxTypedGroupIterator(this.sprite.level.enemies.group.members,null);
+		while( $it0.hasNext() ) {
+			var enemy = $it0.next();
+			var dx = enemy.x - this.sprite.x;
+			var dy = enemy.y - this.sprite.y;
+			var dist = Math.sqrt(dx * dx + dy * dy);
+			if(dist <= minDist || minDist == -1) {
+				minDist = dist;
+				closest = js_Boot.__cast(enemy , game_enemies_Enemy);
+			}
+		}
+		if(minDist <= this.visionRadius && closest != null) {
+			this.sprite.fsm.stateSpriteData.set("target",closest);
+			this.sprite.fsm.setState("agro");
+		}
+	}
+	,__class__: game_ai_TurretIdleState
+});
+var game_effects_SpriteEffect = function(target,duration,addOnInit) {
+	if(addOnInit == null) addOnInit = true;
+	this.applied = false;
+	this.target = target;
+	this.duration = duration;
+	if(addOnInit) this.add();
+};
+$hxClasses["game.effects.SpriteEffect"] = game_effects_SpriteEffect;
+game_effects_SpriteEffect.__name__ = ["game","effects","SpriteEffect"];
+game_effects_SpriteEffect.prototype = {
+	copy: function(target) {
+		return new game_effects_SpriteEffect(target,this.duration,true);
+	}
+	,add: function() {
+		this.applied = true;
+		this.durationLeft = this.duration;
+	}
+	,remove: function() {
+		this.applied = false;
+		HxOverrides.remove(this.target.effects,this);
+	}
+	,update: function(elapsed) {
+		if(this.duration > 0) {
+			this.durationLeft -= elapsed;
+			if(this.durationLeft <= 0) this.remove();
+		}
+	}
+	,__class__: game_effects_SpriteEffect
+};
+var game_effects_WeaponEffect = function(target,duration,addOnInit) {
+	if(addOnInit == null) addOnInit = true;
+	this.applied = false;
+	this.target = target;
+	this.duration = duration;
+	if(addOnInit) this.add();
+};
+$hxClasses["game.effects.WeaponEffect"] = game_effects_WeaponEffect;
+game_effects_WeaponEffect.__name__ = ["game","effects","WeaponEffect"];
+game_effects_WeaponEffect.prototype = {
+	copy: function(target) {
+		return new game_effects_WeaponEffect(target,this.duration,true);
+	}
+	,add: function() {
+		this.applied = true;
+		this.durationLeft = this.duration;
+	}
+	,remove: function() {
+		this.applied = false;
+		HxOverrides.remove(this.target.effects,this);
+	}
+	,update: function(elapsed) {
+		if(this.duration > 0) {
+			this.durationLeft -= elapsed;
+			if(this.durationLeft <= 0) this.remove();
+		}
+	}
+	,__class__: game_effects_WeaponEffect
+};
+var game_effects_spritetypes_Root = function(target,duration,addOnInit) {
+	if(addOnInit == null) addOnInit = true;
+	game_effects_SpriteEffect.call(this,target,duration,addOnInit);
+};
+$hxClasses["game.effects.spritetypes.Root"] = game_effects_spritetypes_Root;
+game_effects_spritetypes_Root.__name__ = ["game","effects","spritetypes","Root"];
+game_effects_spritetypes_Root.__super__ = game_effects_SpriteEffect;
+game_effects_spritetypes_Root.prototype = $extend(game_effects_SpriteEffect.prototype,{
+	add: function() {
+		this.oldRawSpeed = this.target.rawSpeed;
+		this.target.rawSpeed = 0;
+		game_effects_SpriteEffect.prototype.add.call(this);
+	}
+	,remove: function() {
+		this.target.rawSpeed = this.oldRawSpeed;
+		game_effects_SpriteEffect.prototype.remove.call(this);
+	}
+	,__class__: game_effects_spritetypes_Root
+});
 var game_enemies_Enemy = function(level,X,Y,health,speed) {
 	if(speed == null) speed = 100;
 	game_RSprite.call(this,level,X,Y,speed);
@@ -27104,7 +27277,6 @@ game_enemies_Enemy.__name__ = ["game","enemies","Enemy"];
 game_enemies_Enemy.__super__ = game_RSprite;
 game_enemies_Enemy.prototype = $extend(game_RSprite.prototype,{
 	update: function(elapsed) {
-		this.fsm.update(elapsed);
 		game_RSprite.prototype.update.call(this,elapsed);
 		if(this.health <= 0) this.level.removeEnemy(this);
 	}
@@ -27118,7 +27290,7 @@ game_enemies_Enemy.prototype = $extend(game_RSprite.prototype,{
 	,__class__: game_enemies_Enemy
 });
 var game_enemies_Monster = function(level,X,Y) {
-	game_enemies_Enemy.call(this,level,X,Y,10,80);
+	game_enemies_Enemy.call(this,level,X,Y,10,50);
 	this.fsm.registerState("idle",new game_ai_EnemyIdleState(this,100));
 	this.fsm.registerState("agro",new game_ai_EnemyAgroState(this,100));
 	this.fsm.setState("idle");
@@ -27130,19 +27302,92 @@ game_enemies_Monster.__super__ = game_enemies_Enemy;
 game_enemies_Monster.prototype = $extend(game_enemies_Enemy.prototype,{
 	__class__: game_enemies_Monster
 });
+var game_traps_Trap = function(level,X,Y,damage) {
+	game_RSprite.call(this,level,X,Y,0);
+	this.damage = damage;
+};
+$hxClasses["game.traps.Trap"] = game_traps_Trap;
+game_traps_Trap.__name__ = ["game","traps","Trap"];
+game_traps_Trap.__super__ = game_RSprite;
+game_traps_Trap.prototype = $extend(game_RSprite.prototype,{
+	update: function(elapsed) {
+		this.checkForEnemies();
+		game_RSprite.prototype.update.call(this,elapsed);
+	}
+	,checkForEnemies: function() {
+		if(flixel_FlxG.overlap(this,this.level.enemies,$bind(this,this.handleRawOverlap))) this.trigger();
+	}
+	,trigger: function() {
+		this.level.remove(this);
+	}
+	,enemyHit: function(enemy) {
+		enemy.dealDamage(this.damage);
+	}
+	,handleRawOverlap: function(obj1,obj2) {
+		var obj = obj1;
+		if(obj1 == this) obj = obj2;
+		var enemy;
+		enemy = js_Boot.__cast(obj , game_enemies_Enemy);
+		this.enemyHit(enemy);
+	}
+	,__class__: game_traps_Trap
+});
+var game_traps_types_BearTrap = function(level,X,Y,damage) {
+	this.rootDuration = 3;
+	game_traps_Trap.call(this,level,X,Y,damage);
+	this.makeGraphic(5,5,-65536);
+};
+$hxClasses["game.traps.types.BearTrap"] = game_traps_types_BearTrap;
+game_traps_types_BearTrap.__name__ = ["game","traps","types","BearTrap"];
+game_traps_types_BearTrap.__super__ = game_traps_Trap;
+game_traps_types_BearTrap.prototype = $extend(game_traps_Trap.prototype,{
+	enemyHit: function(enemy) {
+		enemy.effects.push(new game_effects_spritetypes_Root(enemy,this.rootDuration));
+		enemy.dealDamage(this.damage);
+	}
+	,__class__: game_traps_types_BearTrap
+});
+var game_turrets_Turret = function(level,X,Y,fireRate,visionRadius) {
+	game_RSprite.call(this,level,X,Y,0);
+	this.fsm.registerState("idle",new game_ai_TurretIdleState(this,visionRadius));
+	this.fsm.registerState("agro",new game_ai_TurretAgroState(this,visionRadius,fireRate));
+	this.fsm.setState("idle");
+	this.weapon = new game_weapons_TurretWeapon(level,this);
+	this.makeGraphic(6,6,-65536);
+};
+$hxClasses["game.turrets.Turret"] = game_turrets_Turret;
+game_turrets_Turret.__name__ = ["game","turrets","Turret"];
+game_turrets_Turret.__super__ = game_RSprite;
+game_turrets_Turret.prototype = $extend(game_RSprite.prototype,{
+	fireAt: function(target) {
+		this.weapon.forceFire(target.x,target.y);
+	}
+	,__class__: game_turrets_Turret
+});
 var game_weapons_Weapon = function(level,source) {
+	this.bulletSpread = 30;
+	this.bulletSpeed = 300;
 	this.currentCooldown = 0;
 	this.level = level;
 	this.source = source;
 	this.fireCooldown = 0.05;
 	this.lastBullets = [];
 	this.newBullets = [];
-	this.damageModel = new game_weapons_damage_DamageModel(0.2);
+	this.bulletSpawner = new game_weapons_bullets_BulletSpawner(this,game_weapons_bullets_Bullet);
+	this.bulletSpawner.damage = new game_weapons_damage_DamageModel(2);
+	this.effects = [];
 };
 $hxClasses["game.weapons.Weapon"] = game_weapons_Weapon;
 game_weapons_Weapon.__name__ = ["game","weapons","Weapon"];
 game_weapons_Weapon.prototype = {
 	update: function(elapsed) {
+		var _g = 0;
+		var _g1 = this.effects;
+		while(_g < _g1.length) {
+			var effect = _g1[_g];
+			++_g;
+			effect.update(elapsed);
+		}
 		if(this.currentCooldown > 0) this.currentCooldown = this.currentCooldown - elapsed;
 	}
 	,fire: function(elapsed,targetX,targetY) {
@@ -27153,11 +27398,19 @@ game_weapons_Weapon.prototype = {
 			this.lastBullets = this.newBullets;
 		}
 	}
-	,forceFire: function(targetX,targetY) {
+	,getAngle: function(targetX,targetY) {
 		var target = new flixel_math_FlxPoint(targetX,targetY);
-		var angle = flixel_math_FlxAngle.angleBetweenPoint(this.source,target);
-		angle += flixel_FlxG.random["int"](-1,1) / 50.0;
-		this.shootBullet(new game_weapons_bullets_BouncyBullet(this.level,this.source.x,this.source.y,Math.cos(angle) * 300,Math.sin(angle) * 300,this.damageModel,5));
+		return flixel_math_FlxAngle.angleBetweenPoint(this.source,target);
+	}
+	,offsetAngle: function(angle,amount) {
+		if(amount == 0) return angle; else return angle + flixel_FlxG.random["int"](-amount,amount) / 1000.0;
+	}
+	,getBulletAngle: function(targetX,targetY,bulletSpread) {
+		return this.offsetAngle(this.getAngle(targetX,targetY),bulletSpread);
+	}
+	,forceFire: function(targetX,targetY) {
+		var angle = this.getBulletAngle(targetX,targetY,this.bulletSpread);
+		this.shootBullet(this.bulletSpawner.create(this.level,this.source.x,this.source.y,Math.cos(angle) * this.bulletSpeed,Math.sin(angle) * this.bulletSpeed));
 	}
 	,shootBullet: function(bullet) {
 		this.level.add(bullet);
@@ -27168,18 +27421,33 @@ game_weapons_Weapon.prototype = {
 var game_weapons_GrenadeLauncher = function(level,source) {
 	game_weapons_Weapon.call(this,level,source);
 	this.fireCooldown = 1;
+	this.bulletSpeed = 70;
+	this.bulletSpread = 0;
 };
 $hxClasses["game.weapons.GrenadeLauncher"] = game_weapons_GrenadeLauncher;
 game_weapons_GrenadeLauncher.__name__ = ["game","weapons","GrenadeLauncher"];
 game_weapons_GrenadeLauncher.__super__ = game_weapons_Weapon;
 game_weapons_GrenadeLauncher.prototype = $extend(game_weapons_Weapon.prototype,{
 	forceFire: function(targetX,targetY) {
-		var target = new flixel_math_FlxPoint(targetX,targetY);
-		var angle = flixel_math_FlxAngle.angleBetweenPoint(this.source,target);
-		angle += flixel_FlxG.random["int"](-1,1) / 50.0;
-		this.shootBullet(new game_weapons_bullets_Grenade(this.level,this.source.x,this.source.y,Math.cos(angle) * 70,Math.sin(angle) * 70,30,1.5));
+		var angle = this.getAngle(targetX,targetY);
+		this.shootBullet(new game_weapons_bullets_types_Grenade(this.level,this.source.x,this.source.y,Math.cos(angle) * this.bulletSpeed,Math.sin(angle) * this.bulletSpeed,30,1.5));
 	}
 	,__class__: game_weapons_GrenadeLauncher
+});
+var game_weapons_TurretWeapon = function(level,source) {
+	game_weapons_Weapon.call(this,level,source);
+	this.bulletSpeed = 150;
+	this.bulletSpread = 0;
+};
+$hxClasses["game.weapons.TurretWeapon"] = game_weapons_TurretWeapon;
+game_weapons_TurretWeapon.__name__ = ["game","weapons","TurretWeapon"];
+game_weapons_TurretWeapon.__super__ = game_weapons_Weapon;
+game_weapons_TurretWeapon.prototype = $extend(game_weapons_Weapon.prototype,{
+	forceFire: function(targetX,targetY) {
+		var angle = this.getBulletAngle(targetX,targetY,this.bulletSpread);
+		this.shootBullet(new game_weapons_bullets_types_TurretBullet(this.level,this.source.x,this.source.y,Math.cos(angle) * this.bulletSpeed,Math.sin(angle) * this.bulletSpeed,new game_weapons_damage_DamageModel(1)));
+	}
+	,__class__: game_weapons_TurretWeapon
 });
 var game_weapons_bullets_Bullet = function(level,X,Y,SpeedX,SpeedY,damage) {
 	this.life = 0;
@@ -27201,7 +27469,10 @@ $hxClasses["game.weapons.bullets.Bullet"] = game_weapons_bullets_Bullet;
 game_weapons_bullets_Bullet.__name__ = ["game","weapons","bullets","Bullet"];
 game_weapons_bullets_Bullet.__super__ = game_RSprite;
 game_weapons_bullets_Bullet.prototype = $extend(game_RSprite.prototype,{
-	getPerp: function(offset) {
+	createBullet: function(level,X,Y,SpeedX,SpeedY,spawner) {
+		return new game_weapons_bullets_Bullet(level,X,Y,SpeedX,SpeedY,spawner.damage);
+	}
+	,getPerp: function(offset) {
 		var vector = new flixel_math_FlxVector(this.speed.x,this.speed.y);
 		vector.rotateByRadians(90 * (Math.PI / 180));
 		return new flixel_math_FlxPoint((Math.abs(vector.x) < 0.0000001 && Math.abs(vector.y) < 0.0000001?0:vector.x / Math.sqrt(vector.x * vector.x + vector.y * vector.y)) * offset,(Math.abs(vector.x) < 0.0000001 && Math.abs(vector.y) < 0.0000001?0:vector.y / Math.sqrt(vector.x * vector.x + vector.y * vector.y)) * offset);
@@ -27270,45 +27541,52 @@ game_weapons_bullets_Bullet.prototype = $extend(game_RSprite.prototype,{
 	}
 	,__class__: game_weapons_bullets_Bullet
 });
-var game_weapons_bullets_AndrewsBullet = function(level,X,Y,SpeedX,SpeedY,damage) {
-	this.spiralAngle = 0;
-	game_weapons_bullets_Bullet.call(this,level,X,Y,SpeedX,SpeedY,damage);
-	this.makeGraphic(2,2,-16776961);
+var game_weapons_bullets_BulletSpawner = function(weapon,bulletType) {
+	this.damage = new game_weapons_damage_DamageModel(0);
+	this.spiral = 0;
+	this.life = 1;
+	this.explosionAmount = 15;
+	this.fuse = 0.5;
+	this.weapon = weapon;
+	this.bulletType = bulletType;
+	this.bulletEffects = [];
 };
-$hxClasses["game.weapons.bullets.AndrewsBullet"] = game_weapons_bullets_AndrewsBullet;
-game_weapons_bullets_AndrewsBullet.__name__ = ["game","weapons","bullets","AndrewsBullet"];
-game_weapons_bullets_AndrewsBullet.__super__ = game_weapons_bullets_Bullet;
-game_weapons_bullets_AndrewsBullet.prototype = $extend(game_weapons_bullets_Bullet.prototype,{
-	movement: function(elapsed) {
-		this.spiralAngle += 0.5;
-		var dx = this.speed.x * elapsed + Math.sin(this.spiralAngle) * 2;
-		var dy = this.speed.y * elapsed + Math.sin(this.spiralAngle) * 2;
-		var _g = this;
-		_g.set_x(_g.x + dx);
-		var _g1 = this;
-		_g1.set_y(_g1.y + dy);
-		flixel_FlxG.overlap(this,this.level.enemies,$bind(this,this.handleEnemyCollision),flixel_FlxObject.separate);
-		if(flixel_FlxG.overlap(this,this.level.tilemap,null,flixel_FlxObject.separate)) {
-			this.hasCollided = true;
-			this.level.remove(this);
+$hxClasses["game.weapons.bullets.BulletSpawner"] = game_weapons_bullets_BulletSpawner;
+game_weapons_bullets_BulletSpawner.__name__ = ["game","weapons","bullets","BulletSpawner"];
+game_weapons_bullets_BulletSpawner.prototype = {
+	create: function(level,X,Y,SpeedX,SpeedY) {
+		if(SpeedY == null) SpeedY = 0;
+		if(SpeedX == null) SpeedX = 0;
+		var bullet = Type.createEmptyInstance(this.bulletType).createBullet(level,X,Y,SpeedX,SpeedY,this);
+		var _g = 0;
+		var _g1 = this.bulletEffects;
+		while(_g < _g1.length) {
+			var effect = _g1[_g];
+			++_g;
+			bullet.effects.push(effect.copy(bullet));
 		}
+		return bullet;
 	}
-	,__class__: game_weapons_bullets_AndrewsBullet
-});
-var game_weapons_bullets_BouncyBullet = function(level,X,Y,SpeedX,SpeedY,damage,life) {
+	,__class__: game_weapons_bullets_BulletSpawner
+};
+var game_weapons_bullets_types_BouncyBullet = function(level,X,Y,SpeedX,SpeedY,damage,life) {
 	game_weapons_bullets_Bullet.call(this,level,X,Y,SpeedX,SpeedY,damage);
 	this.bouncy = true;
 	this.hasLife = true;
 	this.life = life;
 };
-$hxClasses["game.weapons.bullets.BouncyBullet"] = game_weapons_bullets_BouncyBullet;
-game_weapons_bullets_BouncyBullet.__name__ = ["game","weapons","bullets","BouncyBullet"];
-game_weapons_bullets_BouncyBullet.__super__ = game_weapons_bullets_Bullet;
-game_weapons_bullets_BouncyBullet.prototype = $extend(game_weapons_bullets_Bullet.prototype,{
-	__class__: game_weapons_bullets_BouncyBullet
+$hxClasses["game.weapons.bullets.types.BouncyBullet"] = game_weapons_bullets_types_BouncyBullet;
+game_weapons_bullets_types_BouncyBullet.__name__ = ["game","weapons","bullets","types","BouncyBullet"];
+game_weapons_bullets_types_BouncyBullet.__super__ = game_weapons_bullets_Bullet;
+game_weapons_bullets_types_BouncyBullet.prototype = $extend(game_weapons_bullets_Bullet.prototype,{
+	createBullet: function(level,X,Y,SpeedX,SpeedY,spawner) {
+		return new game_weapons_bullets_types_BouncyBullet(level,X,Y,SpeedX,SpeedY,spawner.damage,spawner.life);
+	}
+	,__class__: game_weapons_bullets_types_BouncyBullet
 });
-var game_weapons_bullets_Grenade = function(level,X,Y,SpeedX,SpeedY,explosionAmount,fuse) {
+var game_weapons_bullets_types_Grenade = function(level,X,Y,SpeedX,SpeedY,explosionAmount,fuse) {
 	if(fuse == null) fuse = 0;
+	this.shrapnelSpeed = 300;
 	game_weapons_bullets_Bullet.call(this,level,X,Y,SpeedX,SpeedY,new game_weapons_damage_DamageModel(0));
 	this.explosionAmount = explosionAmount;
 	this.bouncy = true;
@@ -27316,55 +27594,55 @@ var game_weapons_bullets_Grenade = function(level,X,Y,SpeedX,SpeedY,explosionAmo
 	this.enemyPiercing = true;
 	this.life = fuse;
 };
-$hxClasses["game.weapons.bullets.Grenade"] = game_weapons_bullets_Grenade;
-game_weapons_bullets_Grenade.__name__ = ["game","weapons","bullets","Grenade"];
-game_weapons_bullets_Grenade.__super__ = game_weapons_bullets_Bullet;
-game_weapons_bullets_Grenade.prototype = $extend(game_weapons_bullets_Bullet.prototype,{
-	endOfLife: function() {
+$hxClasses["game.weapons.bullets.types.Grenade"] = game_weapons_bullets_types_Grenade;
+game_weapons_bullets_types_Grenade.__name__ = ["game","weapons","bullets","types","Grenade"];
+game_weapons_bullets_types_Grenade.__super__ = game_weapons_bullets_Bullet;
+game_weapons_bullets_types_Grenade.prototype = $extend(game_weapons_bullets_Bullet.prototype,{
+	createBullet: function(level,X,Y,SpeedX,SpeedY,spawner) {
+		return new game_weapons_bullets_types_Grenade(level,X,Y,SpeedX,SpeedY,spawner.explosionAmount,spawner.fuse);
+	}
+	,endOfLife: function() {
 		var angle_step = Math.PI * 2 / this.explosionAmount;
 		var _g1 = 0;
 		var _g = this.explosionAmount;
 		while(_g1 < _g) {
 			var i = _g1++;
 			var angle = angle_step * i;
-			var bullet = new game_weapons_bullets_GrenadeShrapnel(this.level,this.x,this.y,Math.cos(angle) * 300,Math.sin(angle) * 300,new game_weapons_damage_DamageModel(0.5),0.2);
+			var bullet = new game_weapons_bullets_types_GrenadeShrapnel(this.level,this.x,this.y,Math.cos(angle) * this.shrapnelSpeed,Math.sin(angle) * this.shrapnelSpeed,new game_weapons_damage_DamageModel(0.5),0.2);
 			this.level.add(bullet);
 		}
 		game_weapons_bullets_Bullet.prototype.endOfLife.call(this);
 	}
-	,__class__: game_weapons_bullets_Grenade
+	,__class__: game_weapons_bullets_types_Grenade
 });
-var game_weapons_bullets_GrenadeShrapnel = function(level,X,Y,SpeedX,SpeedY,damage,life) {
+var game_weapons_bullets_types_GrenadeShrapnel = function(level,X,Y,SpeedX,SpeedY,damage,life) {
 	if(life == null) life = 0.1;
 	game_weapons_bullets_Bullet.call(this,level,X,Y,SpeedX,SpeedY,damage);
 	this.hasLife = true;
 	this.enemyPiercing = true;
 	this.life = life;
+	this.knockback = 15;
 };
-$hxClasses["game.weapons.bullets.GrenadeShrapnel"] = game_weapons_bullets_GrenadeShrapnel;
-game_weapons_bullets_GrenadeShrapnel.__name__ = ["game","weapons","bullets","GrenadeShrapnel"];
-game_weapons_bullets_GrenadeShrapnel.__super__ = game_weapons_bullets_Bullet;
-game_weapons_bullets_GrenadeShrapnel.prototype = $extend(game_weapons_bullets_Bullet.prototype,{
-	__class__: game_weapons_bullets_GrenadeShrapnel
-});
-var game_weapons_bullets_WillBullet = function(level,X,Y,SpeedX,SpeedY,damage,spiral) {
-	if(spiral == null) spiral = 0;
-	this.spiralAngle = 0;
-	game_weapons_bullets_Bullet.call(this,level,X,Y,SpeedX,SpeedY,damage);
-	this.spiralAngle = spiral;
-};
-$hxClasses["game.weapons.bullets.WillBullet"] = game_weapons_bullets_WillBullet;
-game_weapons_bullets_WillBullet.__name__ = ["game","weapons","bullets","WillBullet"];
-game_weapons_bullets_WillBullet.__super__ = game_weapons_bullets_Bullet;
-game_weapons_bullets_WillBullet.prototype = $extend(game_weapons_bullets_Bullet.prototype,{
-	movement: function(elapsed) {
-		this.spiralAngle += 0.2;
-		var perpVec = this.getPerp(Math.sin(this.spiralAngle) * 0.5);
-		var dx = this.speed.x * elapsed + perpVec.x;
-		var dy = this.speed.y * elapsed + perpVec.y;
-		this.moveSprite(dx,dy);
+$hxClasses["game.weapons.bullets.types.GrenadeShrapnel"] = game_weapons_bullets_types_GrenadeShrapnel;
+game_weapons_bullets_types_GrenadeShrapnel.__name__ = ["game","weapons","bullets","types","GrenadeShrapnel"];
+game_weapons_bullets_types_GrenadeShrapnel.__super__ = game_weapons_bullets_Bullet;
+game_weapons_bullets_types_GrenadeShrapnel.prototype = $extend(game_weapons_bullets_Bullet.prototype,{
+	createBullet: function(level,X,Y,SpeedX,SpeedY,spawner) {
+		return new game_weapons_bullets_types_GrenadeShrapnel(level,X,Y,SpeedX,SpeedY,spawner.damage,spawner.life);
 	}
-	,__class__: game_weapons_bullets_WillBullet
+	,__class__: game_weapons_bullets_types_GrenadeShrapnel
+});
+var game_weapons_bullets_types_TurretBullet = function(level,X,Y,SpeedX,SpeedY,damage) {
+	game_weapons_bullets_Bullet.call(this,level,X,Y,SpeedX,SpeedY,damage);
+};
+$hxClasses["game.weapons.bullets.types.TurretBullet"] = game_weapons_bullets_types_TurretBullet;
+game_weapons_bullets_types_TurretBullet.__name__ = ["game","weapons","bullets","types","TurretBullet"];
+game_weapons_bullets_types_TurretBullet.__super__ = game_weapons_bullets_Bullet;
+game_weapons_bullets_types_TurretBullet.prototype = $extend(game_weapons_bullets_Bullet.prototype,{
+	createBullet: function(level,X,Y,SpeedX,SpeedY,spawner) {
+		return new game_weapons_bullets_types_TurretBullet(level,X,Y,SpeedX,SpeedY,spawner.damage);
+	}
+	,__class__: game_weapons_bullets_types_TurretBullet
 });
 var game_weapons_damage_DamageModel = function(base) {
 	this.baseDamage = base;
@@ -29386,15 +29664,31 @@ js_html_compat_Uint8Array._subarray = function(start,end) {
 	a.byteOffset = start;
 	return a;
 };
+var level_RDoor = function(x,y) {
+	this.x = x;
+	this.y = y;
+};
+$hxClasses["level.RDoor"] = level_RDoor;
+level_RDoor.__name__ = ["level","RDoor"];
+level_RDoor.prototype = {
+	placeDoor: function(matrix) {
+		matrix[this.y][this.x] = level_RId.TILE_BASE_FLOOR;
+	}
+	,__class__: level_RDoor
+};
 var level_RId = function() { };
 $hxClasses["level.RId"] = level_RId;
 level_RId.__name__ = ["level","RId"];
+level_RId.isSolid = function(id) {
+	return Lambda.has(level_RId.solids,id);
+};
 var level_RLevelGenerator = function(Width,Height) {
 	this.width = Width;
 	this.height = Height;
 	this.centre_x = Std["int"](Math.floor(this.width / 2));
 	this.centre_y = Std["int"](Math.floor(this.height / 2));
 	this.matrix = [];
+	this.rooms = [];
 	var _g = 0;
 	while(_g < Height) {
 		var y = _g++;
@@ -29402,7 +29696,7 @@ var level_RLevelGenerator = function(Width,Height) {
 		var _g1 = 0;
 		while(_g1 < Width) {
 			var x = _g1++;
-			this.matrix[y].push(level_RId.TILE_BASE_WALL);
+			this.matrix[y].push(level_RId.TILE_NONE);
 		}
 	}
 };
@@ -29410,14 +29704,33 @@ $hxClasses["level.RLevelGenerator"] = level_RLevelGenerator;
 level_RLevelGenerator.__name__ = ["level","RLevelGenerator"];
 level_RLevelGenerator.prototype = {
 	generateLevelMatrix: function() {
-		var _g = -3;
-		while(_g < 4) {
-			var y = _g++;
-			var _g1 = -3;
-			while(_g1 < 4) {
-				var x = _g1++;
-				this.matrix[y + this.centre_y][x + this.centre_x] = level_RId.TILE_BASE_FLOOR;
+		var bounds = new level_RRoom(0,0,this.width,this.height);
+		var lastRoom = new level_RRoom(this.centre_x - 3,this.centre_y - 3,7,7);
+		this.rooms.push(lastRoom);
+		lastRoom.placeRoom(this.matrix);
+		var iterationCounter = 0;
+		var placedRooms = 0;
+		while(placedRooms < 20 && iterationCounter < 1000) {
+			var baseRoom = this.rooms[flixel_FlxG.random["int"](0,this.rooms.length - 1)];
+			var croom = baseRoom.createAdjacentRoom(flixel_FlxG.random["int"](4,7),flixel_FlxG.random["int"](4,7),flixel_FlxG.random["int"](0,3));
+			if(croom != null) {
+				if(croom.canPlaceRoom(this.matrix,this.rooms,bounds)) {
+					croom.connected.push(baseRoom);
+					baseRoom.connected.push(croom);
+					croom.placeRoom(this.matrix);
+					this.rooms.push(croom);
+					placedRooms += 1;
+				}
 			}
+			iterationCounter += 1;
+		}
+		haxe_Log.trace(this.rooms.length,{ fileName : "RLevelGenerator.hx", lineNumber : 77, className : "level.RLevelGenerator", methodName : "generateLevelMatrix"});
+		var _g = 0;
+		var _g1 = this.rooms;
+		while(_g < _g1.length) {
+			var room = _g1[_g];
+			++_g;
+			room.placeDoors(this.matrix);
 		}
 		this.matrix[this.centre_y][this.centre_x] = level_RId.SPAWN_PLAYER;
 	}
@@ -29445,6 +29758,115 @@ level_RLevelGenerator.prototype = {
 		return tilemap;
 	}
 	,__class__: level_RLevelGenerator
+};
+var level_RRoom = function(x,y,width,height) {
+	this.x = x;
+	this.y = y;
+	this.width = width;
+	this.height = height;
+	this.doors = [];
+	this.connected = [];
+};
+$hxClasses["level.RRoom"] = level_RRoom;
+level_RRoom.__name__ = ["level","RRoom"];
+level_RRoom.prototype = {
+	placeRoom: function(matrix) {
+		var _g1 = this.y - 1;
+		var _g = this.y + this.height + 1;
+		while(_g1 < _g) {
+			var iy = _g1++;
+			var _g3 = this.x - 1;
+			var _g2 = this.x + this.width + 1;
+			while(_g3 < _g2) {
+				var ix = _g3++;
+				if(ix >= this.x && iy >= this.y && ix < this.x + this.width && iy < this.y + this.height) matrix[iy][ix] = level_RId.TILE_BASE_FLOOR; else matrix[iy][ix] = level_RId.TILE_BASE_WALL;
+			}
+		}
+	}
+	,placeDoors: function(matrix) {
+		var _g = 0;
+		var _g1 = this.doors;
+		while(_g < _g1.length) {
+			var door = _g1[_g];
+			++_g;
+			door.placeDoor(matrix);
+		}
+	}
+	,left: function(expansion) {
+		if(expansion == null) expansion = 0;
+		return this.x - 1 - expansion;
+	}
+	,right: function(expansion) {
+		if(expansion == null) expansion = 0;
+		return this.x + this.width + expansion;
+	}
+	,top: function(expansion) {
+		if(expansion == null) expansion = 0;
+		return this.y - 1 - expansion;
+	}
+	,bottom: function(expansion) {
+		if(expansion == null) expansion = 0;
+		return this.y + this.height + expansion;
+	}
+	,checkCollision: function(room,exp1,exp2) {
+		if(exp2 == null) exp2 = 0;
+		if(exp1 == null) exp1 = 0;
+		return this.left(exp1) < room.right(exp2) && this.right(exp1) > room.left(exp2) && this.top(exp1) < room.bottom(exp2) && this.bottom(exp1) > room.top(exp2);
+	}
+	,canPlaceRoom: function(matrix,rooms,boundingRoom) {
+		if(this.x >= boundingRoom.x && this.y >= boundingRoom.y && this.x + this.width < boundingRoom.x + boundingRoom.width && this.y + this.height < boundingRoom.y + boundingRoom.height) {
+			var _g = 0;
+			while(_g < rooms.length) {
+				var room = rooms[_g];
+				++_g;
+				if(this.checkCollision(room)) return false;
+			}
+			var _g1 = this.y;
+			var _g2 = this.y + this.height;
+			while(_g1 < _g2) {
+				var iy = _g1++;
+				var _g3 = this.x;
+				var _g21 = this.x + this.width;
+				while(_g3 < _g21) {
+					var ix = _g3++;
+					if(level_RId.isSolid(matrix[iy][ix])) {
+						haxe_Log.trace("cannot place room",{ fileName : "RRoom.hx", lineNumber : 83, className : "level.RRoom", methodName : "canPlaceRoom"});
+						return false;
+					}
+				}
+			}
+			return true;
+		} else return false;
+	}
+	,createAdjacentRoom: function(width,height,direction) {
+		if(direction == level_RRoom.UP) {
+			var y = this.y - (height + 1);
+			var x = flixel_FlxG.random["int"](this.x,this.x + this.width - 1) - Math.floor(width / 2);
+			var newRoom = new level_RRoom(x,y,width,height);
+			newRoom.doors.push(new level_RDoor(x + Math.floor(width / 2),this.y - 1));
+			return newRoom;
+		} else if(direction == level_RRoom.DOWN) {
+			var y1 = this.y + this.height + 1;
+			var x1 = flixel_FlxG.random["int"](this.x,this.x + this.width - 1) - Math.floor(width / 2);
+			var newRoom1 = new level_RRoom(x1,y1,width,height);
+			newRoom1.doors.push(new level_RDoor(x1 + Math.floor(width / 2),this.y + this.height));
+			return newRoom1;
+		} else if(direction == level_RRoom.LEFT) {
+			var x2 = this.x - (width + 1);
+			var y2 = flixel_FlxG.random["int"](this.y,this.y + this.height) - Math.floor(height / 2);
+			var newRoom2 = new level_RRoom(x2,y2,width,height);
+			newRoom2.doors.push(new level_RDoor(this.x - 1,y2 + Math.floor(height / 2)));
+			return newRoom2;
+		} else if(direction == level_RRoom.RIGHT) {
+			var x3 = this.x + this.width + 1;
+			var y3 = flixel_FlxG.random["int"](this.y,this.y + this.height - 1) - Math.floor(height / 2);
+			var newRoom3 = new level_RRoom(x3,y3,width,height);
+			newRoom3.doors.push(new level_RDoor(this.x + this.width,y3 + Math.floor(height / 2)));
+			return newRoom3;
+		}
+		return null;
+	}
+	,__class__: level_RRoom
 };
 var lime_AssetCache = function() {
 	this.enabled = true;
@@ -61529,9 +61951,15 @@ haxe_xml_Parser.escapes = (function($this) {
 	return $r;
 }(this));
 js_html_compat_Uint8Array.BYTES_PER_ELEMENT = 1;
-level_RId.TILE_BASE_WALL = 1;
-level_RId.TILE_BASE_FLOOR = 2;
-level_RId.SPAWN_PLAYER = 3;
+level_RId.TILE_BASE_WALL = 2;
+level_RId.TILE_BASE_FLOOR = 3;
+level_RId.TILE_NONE = 1;
+level_RId.SPAWN_PLAYER = 4;
+level_RId.solids = [level_RId.TILE_BASE_WALL];
+level_RRoom.UP = 0;
+level_RRoom.LEFT = 1;
+level_RRoom.DOWN = 2;
+level_RRoom.RIGHT = 3;
 lime_Assets.cache = new lime_AssetCache();
 lime_Assets.libraries = new haxe_ds_StringMap();
 lime_Assets.onChange = new lime_app_Event_$Void_$Void();

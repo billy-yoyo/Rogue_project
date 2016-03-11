@@ -3,6 +3,7 @@ package level;
 import flixel.tile.FlxTilemap;
 import flixel.tile.FlxBaseTilemap;
 import flixel.FlxState;
+import flixel.FlxG;
 import level.RId;
 
 /**
@@ -13,6 +14,7 @@ class RLevelGenerator
 {
 	
 	private var matrix:Array<Array<Int>>;
+	private var rooms:Array<RRoom>;
 	private var width:Int;
 	private var height:Int;
 	private var centre_x:Int;
@@ -24,24 +26,57 @@ class RLevelGenerator
 		centre_x = Std.int(Math.floor(width / 2));
 		centre_y = Std.int(Math.floor(height / 2));
 		this.matrix = new Array<Array<Int>>();
+		this.rooms = new Array<RRoom>();
 		for (y in 0...Height)
 		{
 			this.matrix.push(new Array<Int>());
 			for (x in 0...Width)
 			{
-				this.matrix[y].push(RId.TILE_BASE_WALL);
+				this.matrix[y].push(RId.TILE_NONE);
 			}
 		}
 	}
 	
 	public function generateLevelMatrix():Void
 	{
+		/*for (y in 0...matrix.length) {
+			for (x in 0...matrix[y].length) {
+				if (FlxG.random.int(0, 100) <= 40) {
+					matrix[y][x] = RId.TILE_BASE_FLOOR;
+				}
+			}
+		}
 		for (y in -3...4)
 		{
 			for (x in -3...4)
 			{
 				this.matrix[y + centre_y][x + centre_x] = RId.TILE_BASE_FLOOR;
 			}
+		}
+		*/
+		var bounds:RRoom = new RRoom(0, 0, width, height);
+		var lastRoom:RRoom = new RRoom(centre_x - 3, centre_y - 3, 7, 7);
+		rooms.push(lastRoom);
+		lastRoom.placeRoom(matrix);
+		var iterationCounter:Int = 0;
+		var placedRooms:Int = 0;
+		while (placedRooms < 20 && iterationCounter < 1000) {
+			var baseRoom:RRoom = rooms[FlxG.random.int(0, rooms.length - 1)];
+			var croom:RRoom = baseRoom.createAdjacentRoom(FlxG.random.int(4, 7), FlxG.random.int(4, 7), FlxG.random.int(0, 3));
+			if (croom != null) {
+				if (croom.canPlaceRoom(matrix, rooms, bounds)) {
+					croom.connected.push(baseRoom);
+					baseRoom.connected.push(croom);
+					croom.placeRoom(matrix);
+					rooms.push(croom);
+					placedRooms += 1;
+				}
+			}
+			iterationCounter += 1;
+		}
+		trace(rooms.length);
+		for (room in rooms) {
+			room.placeDoors(matrix);
 		}
 		this.matrix[centre_y][centre_x] = RId.SPAWN_PLAYER;
 	}

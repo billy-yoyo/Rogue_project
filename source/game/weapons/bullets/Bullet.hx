@@ -28,6 +28,10 @@ class Bullet extends RSprite
 	public var hasLife:Bool = false;
 	public var life:Float = 0;
 	
+	public function createBullet(level, X, Y, SpeedX, SpeedY, spawner:BulletSpawner) {
+		return new Bullet(level, X, Y, SpeedX, SpeedY, spawner.damage);
+	}
+	
 	public function new(level:PlayState, X:Float, Y:Float, SpeedX:Float, SpeedY:Float, damage:DamageModel) 
 	{
 		super(level, X, Y, Math.sqrt( (SpeedX * SpeedX) + (SpeedY * SpeedY) ));

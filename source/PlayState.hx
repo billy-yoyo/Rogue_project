@@ -4,6 +4,8 @@ import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.FlxState;
 import flixel.FlxObject;
+import flixel.util.FlxSpriteUtil;
+import flixel.util.FlxColor;
 import flixel.group.FlxSpriteGroup;
 import flixel.tile.FlxTilemap;
 import flixel.tile.FlxTile;
@@ -14,11 +16,19 @@ import flixel.math.FlxPoint;
 import game.Player;
 import game.enemies.Enemy;
 import game.enemies.Monster;
+import game.traps.types.BearTrap;
+import game.turrets.Turret;
+import game.weapons.damage.DamageModel;
 import level.RId;
 import level.RLevelGenerator;
 
 class PlayState extends FlxState
 {	
+	
+	public var visionOverlay:FlxSprite;
+	public var visionFidelity:Int = 100;
+	public var visionStep:Float;
+	public var visionRadius:Float = 100;
 	
 	public var player:Player;
 	public var tilemap:FlxTilemap;
@@ -26,11 +36,13 @@ class PlayState extends FlxState
 	override public function create():Void
 	{
 		enemies = new FlxSpriteGroup(0, 0, 1000);
-		
-		var levelgen = new RLevelGenerator(12, 12);
+		visionStep = (Math.PI * 2) / visionFidelity;
+		visionFidelity += 1;
+		var levelgen = new RLevelGenerator(100, 100);
 		levelgen.generateLevelMatrix();
 		tilemap = levelgen.generateLevel(Main.settings);
-		tilemap.follow();
+		FlxG.worldBounds.set(0, 0, tilemap.width, tilemap.height);
+		//tilemap.follow();
 		tilemap.setTileProperties(RId.TILE_BASE_FLOOR, FlxObject.NONE);
 		tilemap.setTileProperties(RId.TILE_BASE_WALL, FlxObject.ANY);
 		tilemap.setTileProperties(RId.SPAWN_PLAYER, FlxObject.NONE);
@@ -41,14 +53,16 @@ class PlayState extends FlxState
 		if (playerSpawns.length > 0) {
 			var playerPos:FlxPoint = playerSpawns[FlxG.random.int(0, playerSpawns.length-1)];
 			player = new Player(this, playerPos.x, playerPos.y);
-			addEnemy(new Monster(this, playerPos.x, playerPos.y));
+			addEnemy(new Monster(this, playerPos.x + 70, playerPos.y + 70));
+			//var turret:Turret = new Turret(this, playerPos.x, playerPos.y, 0.5, 150);
+			add(new BearTrap(this, playerPos.x, playerPos.y, new DamageModel(3)));
 			add(player);
 			trace("player initialized");
 		} else {
 			trace("no player spawn found");
 		}
 		
-		FlxG.camera.follow(player, TOPDOWN, 1);
+		FlxG.camera.follow(player, LOCKON, 1);
 		FlxG.camera.setScale(1, 1);
 		super.create();
 	}
@@ -65,7 +79,6 @@ class PlayState extends FlxState
 	
 	override public function draw():Void
 	{
-		
 		super.draw();
 	}
 

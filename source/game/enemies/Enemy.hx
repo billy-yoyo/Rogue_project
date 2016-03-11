@@ -19,7 +19,6 @@ class Enemy extends RSprite
 	}
 	
 	override public function update(elapsed:Float):Void {
-		fsm.update(elapsed);
 		super.update(elapsed);
 		if (this.health <= 0) {
 			level.removeEnemy(this);

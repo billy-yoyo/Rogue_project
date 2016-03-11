@@ -4,11 +4,11 @@ import flixel.FlxG;
 import flixel.math.FlxAngle;
 import flixel.math.FlxPoint;
 import game.weapons.bullets.Bullet;
-import game.weapons.bullets.Grenade;
-import game.weapons.bullets.WillBullet;
-import game.weapons.bullets.AndrewsBullet;
-import game.weapons.bullets.BouncyBullet;
+import game.weapons.bullets.BulletSpawner;
+import game.weapons.bullets.types.Grenade;
+import game.weapons.bullets.types.BouncyBullet;
 import game.weapons.damage.DamageModel;
+import game.effects.WeaponEffect;
 
 /**
  * ...
@@ -17,13 +17,18 @@ import game.weapons.damage.DamageModel;
 class Weapon
 {
 
+	public var effects:Array<WeaponEffect>;
+	public var bulletSpawner:BulletSpawner;
+	
 	public var level:PlayState;
 	public var source:RSprite;
-	public var damageModel:DamageModel;
 	public var fireCooldown:Float;
 	public var currentCooldown:Float = 0;
 	public var lastBullets:Array<Bullet>;
 	public var newBullets:Array<Bullet>;
+	
+	public var bulletSpeed:Float = 300;
+	public var bulletSpread:Int = 30;
 	public function new(level:PlayState, source:RSprite) 
 	{
 		this.level = level;
@@ -31,10 +36,16 @@ class Weapon
 		this.fireCooldown = 0.05;
 		this.lastBullets = new Array<Bullet>();
 		this.newBullets = new Array<Bullet>();
-		damageModel = new DamageModel(0.2);
+		this.bulletSpawner = new BulletSpawner(this, Bullet);
+		bulletSpawner.damage = new DamageModel(2);
+		
+		effects = new Array<WeaponEffect>();
 	}
 	
 	public function update(elapsed:Float) {
+		for (effect in effects) {
+			effect.update(elapsed);
+		}
 		if (currentCooldown > 0) {
 			currentCooldown = currentCooldown - elapsed;
 		}
@@ -49,29 +60,27 @@ class Weapon
 		}
 	}
 	
+	public function getAngle(targetX:Float, targetY:Float):Float {
+		var target:FlxPoint = new FlxPoint(targetX, targetY);
+		return FlxAngle.angleBetweenPoint(source, target);
+	}
+	
+	public function offsetAngle(angle:Float, amount:Int):Float {
+		if (amount == 0) {
+			return angle;
+		} else {
+			return angle + FlxG.random.int( -amount, amount) / 1000.0;
+		}
+	}
+	
+	public function getBulletAngle(targetX:Float, targetY:Float, bulletSpread:Int):Float {
+		return offsetAngle(getAngle(targetX, targetY), bulletSpread);
+	}
+	
 	public function forceFire(targetX:Float, targetY:Float):Void
 	{
-		var target:FlxPoint = new FlxPoint(targetX, targetY);
-		var angle:Float = FlxAngle.angleBetweenPoint(source, target);
-		angle += FlxG.random.int( -1, 1) / 50.0;
-		
-		shootBullet(new BouncyBullet(level, source.x, source.y, Math.cos(angle) * 300, Math.sin(angle) * 300, damageModel, 5));
-		//var bullet1 = new AndrewsBullet(level, source.x, source.y, Math.cos(angle - 0.05) * 300, Math.sin(angle - 0.05) * 300, damageModel);
-		//bullet1.spiralAngle += Math.PI;
-		//level.add(bullet1);
-		
-		/*var spiral:Float = 0;
-		if (lastBullets.length > 0) {
-			spiral = cast(lastBullets[0], WillBullet).spiralAngle;
-			trace(spiral);
-		}
-		shootBullet(new WillBullet(level, source.x, source.y, Math.cos(angle) * 300, Math.sin(angle) * 300, damageModel, spiral));
-		*/
-		//shootBullet(new Grenade(level, source.x, source.y, Math.cos(angle) * 70, Math.sin(angle) * 70, damageModel, 15, 2.5));
-		
-		//var bullet3 = new AndrewsBullet(level, source.x, source.y, Math.cos(angle + 0.05) * 300, Math.sin(angle + 0.05) * 300, damageModel);
-		//level.add(bullet3);
-		
+		var angle:Float = getBulletAngle(targetX, targetY, bulletSpread);
+		shootBullet(bulletSpawner.create(level, source.x, source.y, Math.cos(angle) * bulletSpeed, Math.sin(angle) * bulletSpeed));
 	}
 	
 	private function shootBullet(bullet:Bullet) {

@@ -1,4 +1,4 @@
-package game.weapons.bullets;
+package game.weapons.bullets.types;
 import flixel.math.FlxPoint;
 import flixel.math.FlxVector;
 import flixel.FlxG;
@@ -11,7 +11,13 @@ import game.weapons.damage.DamageModel;
 class Grenade extends Bullet
 {
 	
-	private var explosionAmount:Int;
+	public var explosionAmount:Int;
+	public var shrapnelSpeed:Float = 300;
+	
+	override public function createBullet(level, X, Y, SpeedX, SpeedY, spawner:BulletSpawner) {
+		return new Grenade(level, X, Y, SpeedX, SpeedY, spawner.explosionAmount, spawner.fuse);
+	}
+	
 	public function new(level:PlayState, X:Float, Y:Float, SpeedX:Float, SpeedY:Float, explosionAmount:Int, fuse:Float = 0) 
 	{
 		super(level, X, Y, SpeedX, SpeedY, new DamageModel(0));
@@ -27,7 +33,7 @@ class Grenade extends Bullet
 		var angle_step:Float = (Math.PI * 2) / explosionAmount;
 		for (i in 0...explosionAmount) {
 			var angle:Float = angle_step * i;
-			var bullet = new GrenadeShrapnel(level, x, y, Math.cos(angle) * 300, Math.sin(angle) * 300, new DamageModel(0.5), 0.2);
+			var bullet = new GrenadeShrapnel(level, x, y, Math.cos(angle) * shrapnelSpeed, Math.sin(angle) * shrapnelSpeed, new DamageModel(0.5), 0.2);
 			level.add(bullet);
 		}
 		super.endOfLife();

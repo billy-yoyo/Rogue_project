@@ -131,7 +131,7 @@ class ApplicationMain {
 		
 		config = {
 			
-			build: "241",
+			build: "366",
 			company: "billy",
 			file: "Rogueproject",
 			fps: 60,
