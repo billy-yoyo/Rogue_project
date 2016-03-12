@@ -42,6 +42,14 @@ class ApplicationMain {
 		types.push (lime.Assets.AssetType.TEXT);
 		
 		
+		urls.push ("assets/images/player_sprite.png");
+		types.push (lime.Assets.AssetType.IMAGE);
+		
+		
+		urls.push ("assets/images/sprite_tileset.png");
+		types.push (lime.Assets.AssetType.IMAGE);
+		
+		
 		urls.push ("assets/music/music-goes-here.txt");
 		types.push (lime.Assets.AssetType.TEXT);
 		
@@ -131,7 +139,7 @@ class ApplicationMain {
 		
 		config = {
 			
-			build: "366",
+			build: "418",
 			company: "billy",
 			file: "Rogueproject",
 			fps: 60,

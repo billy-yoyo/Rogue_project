@@ -3,6 +3,7 @@ import game.RSprite;
 import flixel.FlxG;
 import flixel.math.FlxPoint;
 import flixel.math.FlxAngle;
+import game.weapons.bullets.BulletSpawner;
 import game.weapons.bullets.types.Grenade;
 
 /**
@@ -18,13 +19,9 @@ class GrenadeLauncher extends Weapon
 		fireCooldown = 1;
 		bulletSpeed = 70;
 		bulletSpread = 0;
+		bulletSpawner = new BulletSpawner(this, Grenade);
+		bulletSpawner.explosionAmount = 30;
+		bulletSpawner.fuse = 1.5;
 	}
 	
-	override public function forceFire(targetX:Float, targetY:Float):Void
-	{
-		var angle:Float = getAngle(targetX, targetY);
-		
-		shootBullet(new Grenade(level, source.x, source.y, Math.cos(angle) * bulletSpeed, Math.sin(angle) * bulletSpeed, 30, 1.5));
-
-	}
 }

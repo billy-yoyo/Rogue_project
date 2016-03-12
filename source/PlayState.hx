@@ -46,6 +46,7 @@ class PlayState extends FlxState
 		tilemap.setTileProperties(RId.TILE_BASE_FLOOR, FlxObject.NONE);
 		tilemap.setTileProperties(RId.TILE_BASE_WALL, FlxObject.ANY);
 		tilemap.setTileProperties(RId.SPAWN_PLAYER, FlxObject.NONE);
+		tilemap.setTileProperties(RId.TILE_BASE_WALL_FRONT, FlxObject.ANY);
 		add(tilemap);
 		
 		

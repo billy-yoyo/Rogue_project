@@ -81,6 +81,17 @@ class RLevelGenerator
 		this.matrix[centre_y][centre_x] = RId.SPAWN_PLAYER;
 	}
 	
+	public function updateTile(x:Int, y:Int) {
+		if (matrix[y][x] == RId.TILE_BASE_WALL) {
+			if (y < matrix.length - 1) {
+				if (RId.isSolid(matrix[y + 1][x]) == false) {
+					return RId.TILE_BASE_WALL_FRONT;
+				}
+			}
+		}
+		return matrix[y][x];
+	}
+	
 	public function convertToString():String
 	{
 		var mapString:String = "";
@@ -88,7 +99,7 @@ class RLevelGenerator
 		{
 			for (x in 0...matrix[y].length)
 			{
-				mapString += Std.string(matrix[y][x]) + ",";
+				mapString += Std.string(updateTile(x, y)) + ",";
 			}
 			
 			mapString += "\n";

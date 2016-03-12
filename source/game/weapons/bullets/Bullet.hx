@@ -35,12 +35,23 @@ class Bullet extends RSprite
 	public function new(level:PlayState, X:Float, Y:Float, SpeedX:Float, SpeedY:Float, damage:DamageModel) 
 	{
 		super(level, X, Y, Math.sqrt( (SpeedX * SpeedX) + (SpeedY * SpeedY) ));
-		makeGraphic(3, 3, FlxColor.BLUE);
 		centre_x_offset = 1.5;
 		centre_y_offset = 1.5;
 		this.speed = new FlxVector(SpeedX, SpeedY);
 		this.level = level;
 		this.damage = damage;
+		setupGraphic();
+	}
+	
+	private function setupGraphic():Void {
+		loadGraphic(AssetPaths.sprite_tileset__png, true, 8, 8);
+		animation.add("move", [0], 1000, true);
+		animation.play("move");
+		this.offset.x = 3;
+		this.offset.y = 5;
+		this.width = 2;
+		this.height = 2;
+		this.angle = this.speed.angleBetween(new FlxPoint(0, 0));
 	}
 	
 	public function getPerp(offset:Float):FlxPoint

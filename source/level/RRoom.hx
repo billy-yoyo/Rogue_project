@@ -108,7 +108,7 @@ class RRoom
 			return newRoom;
 		} else if (direction == RRoom.LEFT) {
 			var x:Int = this.x - (width + 1);
-			var y:Int = FlxG.random.int(this.y, this.y + this.height) - Math.floor(height / 2);
+			var y:Int = FlxG.random.int(this.y, this.y + this.height - 1) - Math.floor(height / 2);
 			
 			var newRoom:RRoom = new RRoom(x, y, width, height);
 			newRoom.doors.push(new RDoor(this.x - 1, y + Math.floor(height / 2)));

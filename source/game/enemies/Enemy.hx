@@ -2,6 +2,7 @@ package game.enemies;
 
 import flixel.FlxSprite;
 import flixel.FlxG;
+import game.Healthbar;
 import game.ai.FSM;
 import game.weapons.damage.DamageModel;
 
@@ -16,6 +17,7 @@ class Enemy extends RSprite
 	{
 		super(level, X, Y, speed);
 		this.health = health;
+		this.healthbar = new Healthbar(this, health, -6, -9, 16, 7, 1);
 	}
 	
 	override public function update(elapsed:Float):Void {
@@ -30,7 +32,4 @@ class Enemy extends RSprite
 		FlxG.collide(this, level.tilemap);
 	}
 	
-	public function dealDamage(damage:DamageModel):Void {
-		health = health - damage.calculateDamage(this);
-	}
 }

@@ -14,7 +14,7 @@ class DamageModel
 		this.baseDamage = base;
 	}
 	
-	public function calculateDamage(enemy:Enemy) {
+	public function calculateDamage(sprite:RSprite) {
 		return baseDamage;
 	}
 }

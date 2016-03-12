@@ -28,6 +28,16 @@ class Grenade extends Bullet
 		this.life = fuse;
 	}
 	
+	override public function setupGraphic():Void {
+		loadGraphic(AssetPaths.sprite_tileset__png, true, 8, 8);
+		animation.add("move", [1], 1000, true);
+		animation.play("move");
+		this.offset.x = 3;
+		this.offset.y = 3;
+		this.width = 4;
+		this.height = 5;
+	}
+	
 	override public function endOfLife():Void
 	{
 		var angle_step:Float = (Math.PI * 2) / explosionAmount;

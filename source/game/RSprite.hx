@@ -2,6 +2,7 @@ package game;
 import flixel.FlxSprite;
 import game.ai.FSM;
 import game.effects.SpriteEffect;
+import game.weapons.damage.DamageModel;
 
 /**
  * ...
@@ -9,6 +10,7 @@ import game.effects.SpriteEffect;
  */
 class RSprite extends FlxSprite
 {
+	public var healthbar:Healthbar = null;
 	public var effects:Array<SpriteEffect>;
 	public var level:PlayState;
 	public var fsm:FSM;
@@ -19,6 +21,14 @@ class RSprite extends FlxSprite
 		this.rawSpeed = rawSpeed;
 		this.effects = new Array<SpriteEffect>();
 		super(X, Y);
+	}
+	
+	override public function draw() {
+		super.draw();
+		if (healthbar != null) {
+			healthbar.updatePosition();
+			healthbar.draw();
+		}
 	}
 	
 	override public function update(elapsed:Float) {
@@ -32,5 +42,20 @@ class RSprite extends FlxSprite
 	public function moveSprite(dx:Float, dy:Float):Void {
 		x += dx;
 		y += dy;
+	}
+	
+	public function getXSpeed():Float {
+		return 0;
+	}
+	
+	public function getYSpeed():Float {
+		return 0;
+	}
+	
+	public function dealDamage(damage:DamageModel):Void {
+		health = health - damage.calculateDamage(this);
+		if (healthbar != null) {
+			healthbar.updateHealth();
+		}
 	}
 }

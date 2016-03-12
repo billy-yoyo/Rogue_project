@@ -80,7 +80,7 @@ class Weapon
 	public function forceFire(targetX:Float, targetY:Float):Void
 	{
 		var angle:Float = getBulletAngle(targetX, targetY, bulletSpread);
-		shootBullet(bulletSpawner.create(level, source.x, source.y, Math.cos(angle) * bulletSpeed, Math.sin(angle) * bulletSpeed));
+		shootBullet(bulletSpawner.create(level, source.x, source.y, (Math.cos(angle) * bulletSpeed) + source.getXSpeed(), (Math.sin(angle) * bulletSpeed) + source.getYSpeed()));
 	}
 	
 	private function shootBullet(bullet:Bullet) {

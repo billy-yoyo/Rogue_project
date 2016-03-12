@@ -12,7 +12,7 @@ class Monster extends Enemy
 
 	public function new(level:PlayState, X:Float, Y:Float) 
 	{
-		super(level, X, Y, 10, 50);
+		super(level, X, Y, 50, 50);
 		this.fsm.registerState("idle", new EnemyIdleState(this, 100));
 		this.fsm.registerState("agro", new EnemyAgroState(this, 100));
 		this.fsm.setState("idle");
