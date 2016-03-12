@@ -51,7 +51,7 @@ class Bullet extends RSprite
 		this.offset.y = 5;
 		this.width = 2;
 		this.height = 2;
-		this.angle = this.speed.angleBetween(new FlxPoint(0, 0));
+		//this.angle = this.speed.angleBetween(new FlxPoint(0, 0));
 	}
 	
 	public function getPerp(offset:Float):FlxPoint

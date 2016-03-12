@@ -69,7 +69,7 @@ ApplicationMain.init = function() {
 	if(total == 0) ApplicationMain.start();
 };
 ApplicationMain.main = function() {
-	ApplicationMain.config = { build : "418", company : "billy", file : "Rogueproject", fps : 60, name : "Rogue_project", orientation : "", packageName : "com.example.myapp", version : "0.0.1", windows : [{ antialiasing : 0, background : 0, borderless : false, depthBuffer : false, display : 0, fullscreen : false, hardware : false, height : 480, parameters : "{}", resizable : false, stencilBuffer : true, title : "Rogue_project", vsync : true, width : 640, x : null, y : null}]};
+	ApplicationMain.config = { build : "445", company : "billy", file : "Rogueproject", fps : 60, name : "Rogue_project", orientation : "", packageName : "com.example.myapp", version : "0.0.1", windows : [{ antialiasing : 0, background : 0, borderless : false, depthBuffer : false, display : 0, fullscreen : false, hardware : false, height : 480, parameters : "{}", resizable : false, stencilBuffer : true, title : "Rogue_project", vsync : true, width : 640, x : null, y : null}]};
 };
 ApplicationMain.start = function() {
 	var hasMain = false;
@@ -27642,7 +27642,6 @@ game_weapons_bullets_Bullet.prototype = $extend(game_RSprite.prototype,{
 		this.offset.set_y(5);
 		this.set_width(2);
 		this.set_height(2);
-		this.set_angle(this.speed.angleBetween(new flixel_math_FlxPoint(0,0)));
 	}
 	,getPerp: function(offset) {
 		var vector = new flixel_math_FlxVector(this.speed.x,this.speed.y);
@@ -29845,6 +29844,40 @@ js_html_compat_Uint8Array._subarray = function(start,end) {
 	a.byteOffset = start;
 	return a;
 };
+var level_RCorridor = function(startX,startY,endX,endY) {
+	this.startX = startX;
+	this.startY = startY;
+	this.endX = endX;
+	this.endY = endY;
+};
+$hxClasses["level.RCorridor"] = level_RCorridor;
+level_RCorridor.__name__ = ["level","RCorridor"];
+level_RCorridor.prototype = {
+	place: function(matrix) {
+		var wallOffset1 = new flixel_math_FlxPoint(0,-1);
+		var wallOffset2 = new flixel_math_FlxPoint(0,1);
+		if(this.startX == this.endX) {
+			wallOffset1 = new flixel_math_FlxPoint(-1,0);
+			wallOffset2 = new flixel_math_FlxPoint(1,0);
+		}
+		if(this.startX == this.endX && this.startY == this.endY) matrix[this.startY][this.startX] = level_RId.TILE_BASE_FLOOR; else {
+			var _g1 = this.startY;
+			var _g = this.endY + 1;
+			while(_g1 < _g) {
+				var y = _g1++;
+				var _g3 = this.startX;
+				var _g2 = this.endX + 1;
+				while(_g3 < _g2) {
+					var x = _g3++;
+					matrix[y][x] = level_RId.TILE_BASE_FLOOR;
+					matrix[y + wallOffset1.y | 0][x + wallOffset1.x | 0] = level_RId.TILE_BASE_WALL;
+					matrix[y + wallOffset2.y | 0][x + wallOffset2.x | 0] = level_RId.TILE_BASE_WALL;
+				}
+			}
+		}
+	}
+	,__class__: level_RCorridor
+};
 var level_RDoor = function(x,y) {
 	this.x = x;
 	this.y = y;
@@ -29913,6 +29946,25 @@ level_RLevelGenerator.prototype = {
 			++_g;
 			room.placeDoors(this.matrix);
 		}
+		var counter = 0;
+		var _g2 = 0;
+		var _g11 = this.rooms;
+		while(_g2 < _g11.length) {
+			var room1 = _g11[_g2];
+			++_g2;
+			var _g21 = 0;
+			var _g3 = this.rooms;
+			while(_g21 < _g3.length) {
+				var room2 = _g3[_g21];
+				++_g21;
+				if(room1 != room2 && !Lambda.has(room1.connected,room2)) {
+					if(flixel_FlxG.random["int"](0,100) <= 100 && room1.checkCollision(room2,2,2)) {
+						if(room1.attemptConnection(room2,this.matrix)) counter += 1;
+					}
+				}
+			}
+		}
+		haxe_Log.trace(counter,{ fileName : "RLevelGenerator.hx", lineNumber : 94, className : "level.RLevelGenerator", methodName : "generateLevelMatrix"});
 		this.matrix[this.centre_y][this.centre_x] = level_RId.SPAWN_PLAYER;
 	}
 	,updateTile: function(x,y) {
@@ -30026,6 +30078,41 @@ level_RRoom.prototype = {
 			}
 			return true;
 		} else return false;
+	}
+	,attemptConnection: function(room,matrix) {
+		var x_direction = 0;
+		var y_direction = 0;
+		if(room.left(1) < this.left(1) && room.right(-1) < this.left(1)) x_direction = -1; else if(room.right(-1) > this.right(-1) && room.left(1) > this.right(-1)) x_direction = 1;
+		if(room.top(1) < this.top(1) && room.bottom(-1) < this.top(1)) y_direction = -1; else if(room.bottom(-1) > this.bottom(-1) && room.top(1) > this.bottom(-1)) y_direction = 1;
+		if((x_direction == 0 || y_direction == 0) && (x_direction != 0 || y_direction != 0)) {
+			var corridor = null;
+			if(x_direction != 0) {
+				var y = flixel_FlxG.random["int"](Math.floor(Math.max(room.top(1),this.top(1))),Math.ceil(Math.min(room.bottom(-1),this.bottom(-1))));
+				var x_start = this.right();
+				var x_end = room.left();
+				if(x_direction > 0) {
+					x_start = room.right();
+					x_end = this.left();
+				}
+				corridor = new level_RCorridor(x_start,y,x_end,y);
+			} else {
+				var x = flixel_FlxG.random["int"](Math.floor(Math.max(room.left(1),this.left(1))),Math.ceil(Math.min(room.right(-1),this.right(-1))));
+				var y_start = this.bottom();
+				var y_end = room.top();
+				if(y_direction > 0) {
+					y_start = room.bottom();
+					y_end = this.top();
+				}
+				corridor = new level_RCorridor(x,y_start,x,y_end);
+			}
+			if(corridor != null) {
+				corridor.place(matrix);
+				room.connected.push(this);
+				this.connected.push(room);
+				return true;
+			}
+		}
+		return false;
 	}
 	,createAdjacentRoom: function(width,height,direction) {
 		if(direction == level_RRoom.UP) {

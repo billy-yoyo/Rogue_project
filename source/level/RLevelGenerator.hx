@@ -78,6 +78,21 @@ class RLevelGenerator
 		for (room in rooms) {
 			room.placeDoors(matrix);
 		}
+		
+		var counter:Int = 0;
+		for (room1 in rooms) {
+			for (room2 in rooms) {
+				if (room1 != room2 && !Lambda.has(room1.connected, room2)) {
+					if (FlxG.random.int(0, 100) <= 100 && room1.checkCollision(room2, 2, 2)) {
+						if (room1.attemptConnection(room2, matrix)) {
+							counter += 1;
+						}
+					}
+				}
+			}
+		}
+		trace(counter);
+		
 		this.matrix[centre_y][centre_x] = RId.SPAWN_PLAYER;
 	}
 	
